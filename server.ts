@@ -259,17 +259,13 @@ app.get('/api/auth/me', authMiddleware, (req: any, res) => {
   res.json(req.user);
 });
 
-// Admin Stats
+// Admin / Platform Stats
 app.get('/api/admin/stats', authMiddleware, (req: any, res) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ message: 'Admin access required.' });
-  }
-
   const db = loadDB();
-  const total_tests = db.tests.length;
-  const active_members = db.users.filter((u: any) => u.role === 'member').length;
+  const total_tests = db.tests ? db.tests.length : 0;
+  const active_members = db.users ? db.users.filter((u: any) => u.role === 'member').length : 0;
 
-  const finishedAttempts = db.attempts.filter((a: any) => a.finished_at);
+  const finishedAttempts = db.attempts ? db.attempts.filter((a: any) => a.finished_at) : [];
   let avg_accuracy = 0;
   if (finishedAttempts.length > 0) {
     const totalAcc = finishedAttempts.reduce((acc: number, a: any) => acc + (a.accuracy_percentage || 0), 0);

@@ -1,30 +1,33 @@
 import React, { useEffect, useState } from 'react';
-import { api, TestSummary } from '../api/client';
+import { api, AuthUser, TestSummary } from '../api/client';
 import { RegistrationCorners } from '../components/RegistrationCorners';
 import { DigitBox } from '../components/DigitBox';
 import { Plus, FileText, CheckCircle2, Archive, Play, BarChart3, Users } from 'lucide-react';
 
 interface AdminDashboardProps {
+  user?: AuthUser;
   onNavigate: (nav: string, testId?: string) => void;
 }
 
 /**
- * Screen 4.2: Admin Dashboard
+ * Screen 4.2: Admin / Test Center Dashboard
  */
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate }) => {
   const [stats, setStats] = useState({ total_tests: 0, avg_accuracy: 0, active_members: 0 });
   const [tests, setTests] = useState<TestSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  const isAdmin = user?.role === 'admin';
 
   const loadData = async () => {
     setIsLoading(true);
     try {
       const [statsRes, testsRes] = await Promise.all([
-        api.getAdminStats(),
-        api.getTests()
+        api.getAdminStats().catch(() => ({ total_tests: 0, avg_accuracy: 0, active_members: 0 })),
+        api.getTests().catch(() => [])
       ]);
-      setStats(statsRes);
-      setTests(testsRes);
+      setStats(statsRes || { total_tests: 0, avg_accuracy: 0, active_members: 0 });
+      setTests(testsRes || []);
     } catch (err) {
       console.error('Failed to load dashboard data:', err);
     } finally {
@@ -60,22 +63,26 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold font-sans text-graphite">
-            Admin Overview
+            {isAdmin ? 'Admin Overview' : 'Test Center'}
           </h1>
           <p className="text-sm font-sans text-graphite-soft mt-0.5">
-            Manage question papers, extractions, and student test performance.
+            {isAdmin
+              ? 'Manage question papers, extractions, and student test performance.'
+              : 'Select a question paper below to start practicing under real test conditions.'}
           </p>
         </div>
 
-        {/* "+ New Test" primary pill button */}
-        <button
-          type="button"
-          onClick={() => onNavigate('upload')}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-ink-navy hover:bg-ink-navy/90 text-white font-sans font-semibold text-sm shadow-md transition-all cursor-pointer self-start sm:self-auto"
-        >
-          <Plus size={18} />
-          <span>+ New Test</span>
-        </button>
+        {/* "+ New Test" primary pill button for Admin */}
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => onNavigate('upload')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-ink-navy hover:bg-ink-navy/90 text-white font-sans font-semibold text-sm shadow-md transition-all cursor-pointer self-start sm:self-auto"
+          >
+            <Plus size={18} />
+            <span>+ New Test</span>
+          </button>
+        )}
       </div>
 
       {/* 3-Column Stat Cards Row */}
@@ -93,7 +100,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             {stats.total_tests}
           </div>
           <div className="text-xs font-sans text-graphite-soft mt-2">
-            Mock papers uploaded
+            Mock papers available
           </div>
         </div>
 
@@ -110,7 +117,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
             {stats.avg_accuracy}%
           </div>
           <div className="text-xs font-sans text-graphite-soft mt-2">
-            Across all member attempts
+            Across member attempts
           </div>
         </div>
 
@@ -149,7 +156,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
           </div>
         ) : tests.length === 0 ? (
           <div className="text-center py-12 text-sm font-sans text-graphite-soft">
-            No tests published yet — upload a question paper to create one.
+            No tests available yet.
           </div>
         ) : (
           <div className="divide-y divide-pencil-line">
@@ -170,13 +177,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                       <h3 className="font-sans font-bold text-base text-graphite">
                         {test.title}
                       </h3>
-                      <span
-                        className={`text-[11px] font-mono font-semibold uppercase px-2 py-0.5 rounded border ${
-                          statusColors[test.status]
-                        }`}
-                      >
-                        {test.status}
-                      </span>
+                      {isAdmin && (
+                        <span
+                          className={`text-[11px] font-mono font-semibold uppercase px-2 py-0.5 rounded border ${
+                            statusColors[test.status]
+                          }`}
+                        >
+                          {test.status}
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-3 text-xs font-mono text-graphite-soft">
@@ -193,24 +202,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) =>
                     <button
                       type="button"
                       onClick={() => onNavigate('test-start', test.id)}
-                      className="px-3 py-1.5 rounded text-xs font-sans font-semibold border border-pencil-line bg-sheet hover:bg-sheet-2 text-graphite transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-4 py-1.5 rounded text-xs font-sans font-semibold bg-ink-navy hover:bg-ink-navy/90 text-white transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
                       <Play size={14} />
-                      <span>Preview</span>
+                      <span>{isAdmin ? 'Preview' : 'Start Test'}</span>
                     </button>
 
-                    {test.status === 'draft' && (
+                    {isAdmin && test.status === 'draft' && (
                       <button
                         type="button"
                         onClick={() => handlePublish(test.id)}
-                        className="px-3 py-1.5 rounded text-xs font-sans font-semibold bg-ink-navy hover:bg-ink-navy/90 text-white transition-colors flex items-center gap-1 cursor-pointer"
+                        className="px-3 py-1.5 rounded text-xs font-sans font-semibold border border-pencil-line bg-sheet hover:bg-sheet-2 text-graphite transition-colors flex items-center gap-1 cursor-pointer"
                       >
                         <CheckCircle2 size={14} />
                         <span>Publish</span>
                       </button>
                     )}
 
-                    {test.status !== 'archived' && (
+                    {isAdmin && test.status !== 'archived' && (
                       <button
                         type="button"
                         onClick={() => handleArchive(test.id)}

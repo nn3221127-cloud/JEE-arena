@@ -107,12 +107,12 @@ export default function App() {
     >
       {/* Admin Dashboard */}
       {activeNav === 'dashboard' && user.role === 'admin' && (
-        <AdminDashboard onNavigate={handleNavigate} />
+        <AdminDashboard user={user} onNavigate={handleNavigate} />
       )}
 
       {/* Member Home / Tests List */}
       {activeNav === 'home' && (
-        <AdminDashboard onNavigate={handleNavigate} />
+        <AdminDashboard user={user} onNavigate={handleNavigate} />
       )}
 
       {/* Step 1: Upload Paper */}
