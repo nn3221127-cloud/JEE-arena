@@ -1,0 +1,6 @@
+{
+  "name": "JEE Test Arena",
+  "description": "JEE Mock Test Arena with multi-LLM question extraction, OMR paper-and-ink visual identity, real-time feedback, and progress tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,107 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+
+  --color-paper: var(--bg-paper);
+  --color-sheet: var(--bg-sheet);
+  --color-sheet-2: var(--bg-sheet-2);
+  --color-graphite: var(--text-graphite);
+  --color-graphite-soft: var(--text-graphite-soft);
+  --color-pencil-line: var(--border-pencil-line);
+  --color-ink-navy: var(--brand-ink-navy);
+  --color-exam-green: var(--accent-exam-green);
+  --color-exam-green-soft: var(--accent-exam-green-soft);
+  --color-red-ink: var(--accent-red-ink);
+  --color-red-ink-soft: var(--accent-red-ink-soft);
+  --color-amber-flag: var(--accent-amber-flag);
+  --color-muted-grey: var(--accent-muted-grey);
+}
+
+:root {
+  --bg-paper: #ECEBE4;
+  --bg-sheet: #FFFFFF;
+  --bg-sheet-2: #F5F4EF;
+  --text-graphite: #24262B;
+  --text-graphite-soft: #6B6E76;
+  --border-pencil-line: #D8D6CC;
+  --brand-ink-navy: #1F2A44;
+  --accent-exam-green: #1F7A4D;
+  --accent-exam-green-soft: #E3F1E9;
+  --accent-red-ink: #B3261E;
+  --accent-red-ink-soft: #FBE9E7;
+  --accent-amber-flag: #C77A1F;
+  --accent-muted-grey: #B7B5AC;
+}
+
+.dark {
+  --bg-paper: #16171B;
+  --bg-sheet: #1F2026;
+  --bg-sheet-2: #282A32;
+  --text-graphite: #D8D6CC;
+  --text-graphite-soft: #8C8F98;
+  --border-pencil-line: #32353E;
+  --brand-ink-navy: #4B6194;
+  --accent-exam-green: #2EA068;
+  --accent-exam-green-soft: #133824;
+  --accent-red-ink: #E54D42;
+  --accent-red-ink-soft: #381715;
+  --accent-amber-flag: #E59A38;
+  --accent-muted-grey: #626570;
+}
+
+body {
+  background-color: var(--bg-paper);
+  color: var(--text-graphite);
+  font-family: var(--font-sans);
+  min-height: 100vh;
+}
+
+/* Monospace Numerals Utility */
+.font-numeral {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Registration Grid Motif for Hero Sections */
+.bg-registration-dots {
+  background-image: radial-gradient(var(--text-graphite-soft) 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: 0 0;
+  opacity: 0.08;
+}
+
+/* Keyframe Animations for Ink Strokes & Bleeds */
+@keyframes inkBleed {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-ink-bleed {
+  animation: inkBleed 200ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes drawStroke {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.animate-draw-stroke {
+  stroke-dasharray: 200;
+  stroke-dashoffset: 200;
+  animation: drawStroke 350ms cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+.animate-draw-circle {
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  animation: drawStroke 600ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
