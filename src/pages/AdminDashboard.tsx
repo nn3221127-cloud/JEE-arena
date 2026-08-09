@@ -39,9 +39,18 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate
     loadData();
   }, []);
 
-  const handlePublish = async (testId: string) => {
+  const handleActivate = async (testId: string) => {
     try {
-      await api.publishTest(testId);
+      await api.activateTest(testId);
+      loadData();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeactivate = async (testId: string) => {
+    try {
+      await api.deactivateTest(testId);
       loadData();
     } catch (err) {
       console.error(err);
@@ -188,12 +197,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs font-mono text-graphite-soft">
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-mono text-graphite-soft">
                       <DigitBox prefix="Q" value={test.question_count} size="sm" />
                       <span>·</span>
                       <span>~{test.estimated_time_minutes} mins</span>
                       <span>·</span>
                       <span>{test.subjects.join(', ')}</span>
+                      {isAdmin && (
+                        <>
+                          <span>·</span>
+                          <span className="text-ink-navy font-semibold">
+                            {test.status === 'published'
+                              ? `Active for ${stats.active_members} enrolled student${stats.active_members === 1 ? '' : 's'} (${test.attempted_student_count || 0} completed)`
+                              : `Not active for students (${stats.active_members} enrolled)`}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -202,20 +221,31 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate
                     <button
                       type="button"
                       onClick={() => onNavigate('test-start', test.id)}
-                      className="px-4 py-1.5 rounded text-xs font-sans font-semibold bg-ink-navy hover:bg-ink-navy/90 text-white transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
+                      className="px-3.5 py-1.5 rounded text-xs font-sans font-semibold bg-sheet border border-pencil-line hover:bg-sheet-2 text-graphite transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
-                      <Play size={14} />
+                      <Play size={14} className="text-ink-navy" />
                       <span>{isAdmin ? 'Preview' : 'Start Test'}</span>
                     </button>
 
                     {isAdmin && test.status === 'draft' && (
                       <button
                         type="button"
-                        onClick={() => handlePublish(test.id)}
-                        className="px-3 py-1.5 rounded text-xs font-sans font-semibold border border-pencil-line bg-sheet hover:bg-sheet-2 text-graphite transition-colors flex items-center gap-1 cursor-pointer"
+                        onClick={() => handleActivate(test.id)}
+                        className="px-3 py-1.5 rounded text-xs font-sans font-semibold bg-ink-navy hover:bg-ink-navy/90 text-white transition-colors flex items-center gap-1 cursor-pointer shadow-xs"
+                        title={`Activate test for ${stats.active_members} enrolled student accounts`}
                       >
                         <CheckCircle2 size={14} />
-                        <span>Publish</span>
+                        <span>Activate ({stats.active_members})</span>
+                      </button>
+                    )}
+
+                    {isAdmin && test.status === 'published' && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeactivate(test.id)}
+                        className="px-3 py-1.5 rounded text-xs font-sans font-semibold border border-pencil-line bg-sheet hover:bg-sheet-2 text-graphite-soft transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Deactivate</span>
                       </button>
                     )}
 

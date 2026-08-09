@@ -263,18 +263,31 @@ app.get('/api/auth/me', authMiddleware, (req: any, res) => {
 app.get('/api/admin/stats', authMiddleware, (req: any, res) => {
   const db = loadDB();
   const total_tests = db.tests ? db.tests.length : 0;
-  const active_members = db.users ? db.users.filter((u: any) => u.role === 'member').length : 0;
 
-  const finishedAttempts = db.attempts ? db.attempts.filter((a: any) => a.finished_at) : [];
+  // Filter strictly for student members (excluding admins)
+  const studentMembers = db.users ? db.users.filter((u: any) => u.role === 'member') : [];
+  const active_members = studentMembers.length;
+  const studentUserIds = new Set(studentMembers.map((u: any) => u.user_id));
+
+  // Filter strictly for finished student attempts
+  const finishedStudentAttempts = (db.attempts || []).filter(
+    (a: any) => a.finished_at && studentUserIds.has(a.user_id)
+  );
+
   let avg_accuracy = 0;
-  if (finishedAttempts.length > 0) {
-    const totalAcc = finishedAttempts.reduce((acc: number, a: any) => acc + (a.accuracy_percentage || 0), 0);
-    avg_accuracy = Math.round(totalAcc / finishedAttempts.length);
+  if (finishedStudentAttempts.length > 0) {
+    const totalAcc = finishedStudentAttempts.reduce((acc: number, a: any) => acc + (a.accuracy_percentage || 0), 0);
+    avg_accuracy = Math.round(totalAcc / finishedStudentAttempts.length);
   } else {
     avg_accuracy = 0;
   }
 
-  res.json({ total_tests, avg_accuracy, active_members });
+  res.json({
+    total_tests,
+    avg_accuracy,
+    active_members,
+    total_student_attempts: finishedStudentAttempts.length
+  });
 });
 
 // List Tests
@@ -282,20 +295,32 @@ app.get('/api/tests', authMiddleware, (req: any, res) => {
   const db = loadDB();
   let tests = db.tests || [];
 
+  const studentMembers = db.users ? db.users.filter((u: any) => u.role === 'member') : [];
+  const studentUserIds = new Set(studentMembers.map((u: any) => u.user_id));
+
   if (req.user.role === 'member') {
     tests = tests.filter((t: any) => t.status === 'published');
   }
 
-  const summaries = tests.map((t: any) => ({
-    id: t.id,
-    title: t.title,
-    description: t.description,
-    status: t.status,
-    question_count: t.questions?.length || 0,
-    estimated_time_minutes: t.estimated_time_minutes || 15,
-    created_at: t.created_at,
-    subjects: Array.from(new Set(t.questions?.map((q: any) => q.subject) || []))
-  }));
+  const summaries = tests.map((t: any) => {
+    const testAttempts = (db.attempts || []).filter(
+      (a: any) => a.test_id === t.id && studentUserIds.has(a.user_id) && a.finished_at
+    );
+    const attemptedStudentIds = new Set(testAttempts.map((a: any) => a.user_id));
+
+    return {
+      id: t.id,
+      title: t.title,
+      description: t.description,
+      status: t.status,
+      question_count: t.questions?.length || 0,
+      estimated_time_minutes: t.estimated_time_minutes || 15,
+      created_at: t.created_at,
+      subjects: Array.from(new Set(t.questions?.map((q: any) => q.subject) || [])),
+      active_student_count: studentMembers.length,
+      attempted_student_count: attemptedStudentIds.size
+    };
+  });
 
   res.json(summaries);
 });
@@ -308,6 +333,27 @@ app.get('/api/tests/:id', authMiddleware, (req: any, res) => {
     return res.status(404).json({ message: 'Test paper not found.' });
   }
   res.json(test);
+});
+
+// Admin Preview Mode Endpoint
+app.get('/api/tests/:id/preview', authMiddleware, (req: any, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required for preview mode.' });
+  }
+  const db = loadDB();
+  const test = db.tests.find((t: any) => t.id === req.params.id);
+  if (!test) {
+    return res.status(404).json({ message: 'Test paper not found.' });
+  }
+  res.json({
+    attempt_id: `preview_${Date.now()}`,
+    test_id: test.id,
+    test_title: test.title,
+    estimated_time_minutes: test.estimated_time_minutes || 15,
+    questions: test.questions || [],
+    start_time: new Date().toISOString(),
+    is_preview: true
+  });
 });
 
 // Create Test
@@ -348,7 +394,39 @@ app.post('/api/tests', authMiddleware, (req: any, res) => {
   res.json(newTest);
 });
 
-// Publish Test
+// Activate Test for Enrolled Students
+app.post('/api/tests/:id/activate', authMiddleware, (req: any, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required.' });
+  }
+  const db = loadDB();
+  const test = db.tests.find((t: any) => t.id === req.params.id);
+  if (!test) {
+    return res.status(404).json({ message: 'Test not found.' });
+  }
+  test.status = 'published';
+  const studentMembers = db.users.filter((u: any) => u.role === 'member');
+  test.active_student_count = studentMembers.length;
+  saveDB(db);
+  res.json({ ...test, active_student_count: studentMembers.length });
+});
+
+// Deactivate Test
+app.post('/api/tests/:id/deactivate', authMiddleware, (req: any, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ message: 'Admin access required.' });
+  }
+  const db = loadDB();
+  const test = db.tests.find((t: any) => t.id === req.params.id);
+  if (!test) {
+    return res.status(404).json({ message: 'Test not found.' });
+  }
+  test.status = 'draft';
+  saveDB(db);
+  res.json(test);
+});
+
+// Publish Test (Alias for Activate)
 app.post('/api/tests/:id/publish', authMiddleware, (req: any, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required.' });
@@ -359,8 +437,10 @@ app.post('/api/tests/:id/publish', authMiddleware, (req: any, res) => {
     return res.status(404).json({ message: 'Test not found.' });
   }
   test.status = 'published';
+  const studentMembers = db.users.filter((u: any) => u.role === 'member');
+  test.active_student_count = studentMembers.length;
   saveDB(db);
-  res.json(test);
+  res.json({ ...test, active_student_count: studentMembers.length });
 });
 
 // Archive Test
@@ -491,6 +571,12 @@ For each question:
 
 // Start Attempt
 app.post('/api/attempts/start', authMiddleware, (req: any, res) => {
+  if (req.user.role === 'admin') {
+    return res.status(403).json({
+      message: 'Admins cannot initiate student attempt sessions. Use Admin Preview mode to inspect test papers.'
+    });
+  }
+
   const { test_id } = req.body;
   const db = loadDB();
   const test = db.tests.find((t: any) => t.id === test_id);
@@ -648,12 +734,14 @@ app.post('/api/attempts/finish', authMiddleware, (req: any, res) => {
       accuracy: Math.round(((topicMap[top].total - topicMap[top].wrong) / topicMap[top].total) * 100)
     }));
 
-  // Team Comparison for this test
-  const testAttempts = db.attempts.filter((a: any) => a.test_id === test.id && a.finished_at);
+  // Team Comparison for this test (Student Members only)
+  const studentMembers = db.users.filter((u: any) => u.role === 'member');
+  const studentUserIds = new Set(studentMembers.map((u: any) => u.user_id));
+  const testAttempts = db.attempts.filter((a: any) => a.test_id === test.id && a.finished_at && studentUserIds.has(a.user_id));
   const teamComparisonRaw: Record<string, any> = {};
 
-  // Find best score for each member
-  db.users.forEach((u: any) => {
+  // Find best score for each student member
+  studentMembers.forEach((u: any) => {
     const uAttempts = testAttempts.filter((a: any) => a.user_id === u.user_id);
     if (uAttempts.length > 0) {
       const best = uAttempts.reduce((max: any, cur: any) => (cur.score > max.score ? cur : max), uAttempts[0]);
@@ -766,9 +854,11 @@ app.get('/api/attempts/:id/results', authMiddleware, (req: any, res) => {
   const secs = diffSecs % 60;
   const time_spent_text = `${mins}m ${secs}s`;
 
-  const testAttempts = db.attempts.filter((a: any) => a.test_id === attempt.test_id && a.finished_at);
+  const studentMembers = db.users.filter((u: any) => u.role === 'member');
+  const studentUserIds = new Set(studentMembers.map((u: any) => u.user_id));
+  const testAttempts = db.attempts.filter((a: any) => a.test_id === attempt.test_id && a.finished_at && studentUserIds.has(a.user_id));
   const teamComparisonRaw: Record<string, any> = {};
-  db.users.forEach((u: any) => {
+  studentMembers.forEach((u: any) => {
     const uAttempts = testAttempts.filter((a: any) => a.user_id === u.user_id);
     if (uAttempts.length > 0) {
       const best = uAttempts.reduce((max: any, cur: any) => (cur.score > max.score ? cur : max), uAttempts[0]);
@@ -849,12 +939,12 @@ function calculateUserStreak(userAttempts: any[]): number {
   return streak;
 }
 
-// Leaderboard
+// Leaderboard (Students ONLY)
 app.get('/api/leaderboard', authMiddleware, (req: any, res) => {
   const db = loadDB();
-  const users = db.users;
+  const studentUsers = (db.users || []).filter((u: any) => u.role === 'member');
 
-  const leaderboard = users.map((u: any) => {
+  const leaderboard = studentUsers.map((u: any) => {
     const userAttempts = db.attempts.filter((a: any) => a.user_id === u.user_id && a.finished_at);
     const tests_taken = userAttempts.length;
     const total_score = userAttempts.reduce((sum: number, a: any) => sum + (a.score || 0), 0);

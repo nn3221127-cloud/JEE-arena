@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { api, TestSummary } from '../api/client';
+import { api, AuthUser, TestSummary } from '../api/client';
 import { RegistrationCorners } from '../components/RegistrationCorners';
 import { WireframeScene } from '../components/WireframeScene';
 import { DigitBox } from '../components/DigitBox';
-import { Play, Clock, BookOpen, Sparkles } from 'lucide-react';
+import { Play, Sparkles, Eye } from 'lucide-react';
 
 interface TestStartProps {
   testId: string;
+  user?: AuthUser;
   onStartTest: (attemptSession: any) => void;
   onBack: () => void;
 }
@@ -14,10 +15,12 @@ interface TestStartProps {
 /**
  * Screen 4.4: Test Start Screen (Member / Preview)
  */
-export const TestStart: React.FC<TestStartProps> = ({ testId, onStartTest, onBack }) => {
+export const TestStart: React.FC<TestStartProps> = ({ testId, user, onStartTest, onBack }) => {
   const [test, setTest] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
+
+  const isAdmin = user?.role === 'admin';
 
   useEffect(() => {
     const fetchTest = async () => {
@@ -38,8 +41,13 @@ export const TestStart: React.FC<TestStartProps> = ({ testId, onStartTest, onBac
     if (!testId) return;
     setIsStarting(true);
     try {
-      const session = await api.startAttempt(testId);
-      onStartTest(session);
+      if (isAdmin) {
+        const previewSession = await api.getTestPreview(testId);
+        onStartTest(previewSession);
+      } else {
+        const session = await api.startAttempt(testId);
+        onStartTest(session);
+      }
     } catch (err) {
       console.error(err);
       setIsStarting(false);
@@ -68,18 +76,20 @@ export const TestStart: React.FC<TestStartProps> = ({ testId, onStartTest, onBac
         <div className="space-y-6">
           {/* Header */}
           <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded bg-sheet-2 border border-pencil-line text-xs font-mono font-semibold text-graphite-soft">
-              <Sparkles size={14} className="text-ink-navy" />
-              <span>JEE MOCK TEST</span>
+            <div className={`inline-flex items-center gap-2 px-2.5 py-0.5 rounded border text-xs font-mono font-semibold ${
+              isAdmin ? 'bg-amber-flag/10 border-amber-flag/40 text-amber-flag' : 'bg-sheet-2 border-pencil-line text-graphite-soft'
+            }`}>
+              {isAdmin ? <Eye size={14} className="text-amber-flag" /> : <Sparkles size={14} className="text-ink-navy" />}
+              <span>{isAdmin ? 'ADMIN PREVIEW MODE' : 'JEE MOCK TEST'}</span>
             </div>
             <h1 className="text-2xl font-bold font-sans tracking-tight text-graphite">
               {test.title}
             </h1>
-            {test.description && (
-              <p className="text-sm font-sans text-graphite-soft leading-relaxed">
-                {test.description}
-              </p>
-            )}
+            <p className="text-sm font-sans text-graphite-soft leading-relaxed">
+              {isAdmin
+                ? 'Review paper structure, question options, and solutions as an inspector without recording student attempts or altering leaderboards.'
+                : test.description || 'Practice under timed JEE exam conditions with step-by-step solutions.'}
+            </p>
           </div>
 
           {/* 3 Meta Chips */}
@@ -124,8 +134,12 @@ export const TestStart: React.FC<TestStartProps> = ({ testId, onStartTest, onBac
               disabled={isStarting}
               className="w-full h-12 rounded-md bg-ink-navy hover:bg-ink-navy/90 text-white font-sans font-bold text-base shadow-md transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
             >
-              <Play size={18} fill="currentColor" />
-              <span>{isStarting ? 'Initiating Test...' : 'Start Test'}</span>
+              {isAdmin ? <Eye size={18} /> : <Play size={18} fill="currentColor" />}
+              <span>
+                {isStarting
+                  ? isAdmin ? 'Launching Preview...' : 'Initiating Test...'
+                  : isAdmin ? 'Start Admin Preview' : 'Start Test'}
+              </span>
             </button>
 
             <button

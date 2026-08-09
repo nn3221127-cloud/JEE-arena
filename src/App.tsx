@@ -82,6 +82,10 @@ export default function App() {
   };
 
   const handleFinishAttempt = (attemptId: string) => {
+    if (attemptId === 'preview_finished') {
+      setActiveNav(user?.role === 'admin' ? 'dashboard' : 'home');
+      return;
+    }
     setCompletedAttemptId(attemptId);
     setActiveNav('results');
   };
@@ -133,6 +137,7 @@ export default function App() {
       {activeNav === 'test-start' && selectedTestId && (
         <TestStart
           testId={selectedTestId}
+          user={user}
           onStartTest={handleStartAttempt}
           onBack={() => setActiveNav(user.role === 'admin' ? 'dashboard' : 'home')}
         />

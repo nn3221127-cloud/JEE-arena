@@ -31,6 +31,9 @@ export interface TestSummary {
   estimated_time_minutes: number;
   created_at: string;
   subjects: string[];
+  active_student_count?: number;
+  attempted_student_count?: number;
+  has_attempted?: boolean;
 }
 
 export interface AttemptSession {
@@ -199,6 +202,22 @@ class ApiClient {
     return this.request(`/tests/${id}/publish`, {
       method: 'POST'
     });
+  }
+
+  async activateTest(id: string): Promise<TestSummary> {
+    return this.request(`/tests/${id}/activate`, {
+      method: 'POST'
+    });
+  }
+
+  async deactivateTest(id: string): Promise<TestSummary> {
+    return this.request(`/tests/${id}/deactivate`, {
+      method: 'POST'
+    });
+  }
+
+  async getTestPreview(id: string): Promise<AttemptSession & { is_preview: boolean }> {
+    return this.request(`/tests/${id}/preview`);
   }
 
   async archiveTest(id: string): Promise<TestSummary> {

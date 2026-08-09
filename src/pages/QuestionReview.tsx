@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { api, QuestionDraft } from '../api/client';
 import { Stepper } from '../components/Stepper';
 import { RegistrationCorners } from '../components/RegistrationCorners';
 import { DigitBox } from '../components/DigitBox';
-import { AlertCircle, Trash2, CheckCircle2, Sparkles, Plus } from 'lucide-react';
+import { AlertCircle, Trash2, CheckCircle2, Plus } from 'lucide-react';
 
 interface QuestionReviewProps {
   initialQuestions: QuestionDraft[];
@@ -20,6 +20,7 @@ export const QuestionReview: React.FC<QuestionReviewProps> = ({
   onPublishSuccess
 }) => {
   const [testTitle, setTestTitle] = useState('JEE Practice Paper ' + new Date().toLocaleDateString());
+  const [studentCount, setStudentCount] = useState<number>(0);
   const [questions, setQuestions] = useState<QuestionDraft[]>(
     initialQuestions.length > 0
       ? initialQuestions
@@ -39,6 +40,16 @@ export const QuestionReview: React.FC<QuestionReviewProps> = ({
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  useEffect(() => {
+    api.getAdminStats().then((stats) => {
+      if (stats && typeof stats.active_members === 'number') {
+        setStudentCount(stats.active_members);
+      }
+    }).catch((err) => {
+      console.error('Failed to load student count:', err);
+    });
+  }, []);
 
   const handleUpdateQuestionText = (index: number, text: string) => {
     const updated = [...questions];
@@ -346,7 +357,11 @@ export const QuestionReview: React.FC<QuestionReviewProps> = ({
             className="w-full sm:w-auto px-6 py-2.5 rounded bg-ink-navy hover:bg-ink-navy/90 text-white font-sans font-bold text-sm shadow transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             <CheckCircle2 size={16} />
-            <span>{isPublishing ? 'Publishing...' : 'Publish Test'}</span>
+            <span>
+              {isPublishing
+                ? 'Activating Test...'
+                : `Activate Test for ${studentCount} Enrolled Student${studentCount === 1 ? '' : 's'}`}
+            </span>
           </button>
         </div>
       </div>

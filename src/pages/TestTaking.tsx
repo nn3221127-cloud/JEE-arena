@@ -37,6 +37,8 @@ export const TestTaking: React.FC<TestTakingProps> = ({ session, onFinishTest })
     return () => clearInterval(interval);
   }, []);
 
+  const isPreviewMode = (session as any).is_preview || session.attempt_id?.startsWith('preview_');
+
   const currentQuestion = session.questions[currentIndex];
   const totalQuestions = session.questions.length;
   const isLastQuestion = currentIndex === totalQuestions - 1;
@@ -44,10 +46,12 @@ export const TestTaking: React.FC<TestTakingProps> = ({ session, onFinishTest })
 
   const handleAnswerSubmit = async (questionId: string, selectedIndex: number) => {
     setAnsweredMap((prev) => ({ ...prev, [questionId]: selectedIndex }));
-    try {
-      await api.submitAnswer(session.attempt_id, questionId, selectedIndex);
-    } catch (err) {
-      console.error('Failed to record answer:', err);
+    if (!isPreviewMode) {
+      try {
+        await api.submitAnswer(session.attempt_id, questionId, selectedIndex);
+      } catch (err) {
+        console.error('Failed to record answer:', err);
+      }
     }
   };
 
@@ -62,6 +66,10 @@ export const TestTaking: React.FC<TestTakingProps> = ({ session, onFinishTest })
   const handleFinish = async () => {
     if (isFinishing) return;
     setIsFinishing(true);
+    if (isPreviewMode) {
+      onFinishTest('preview_finished');
+      return;
+    }
     try {
       await api.finishAttempt(session.attempt_id);
       onFinishTest(session.attempt_id);
