@@ -80,6 +80,7 @@ export interface ResultsSummary {
     total: number;
     accuracy: number;
     is_current_user: boolean;
+    has_attempted?: boolean;
   }>;
 }
 

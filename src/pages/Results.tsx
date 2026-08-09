@@ -288,13 +288,13 @@ export const Results: React.FC<ResultsProps> = ({ attemptId, onNavigate }) => {
                       {m.user_name} {m.is_current_user && '(You)'}
                     </div>
                     <div className="font-mono text-xs text-graphite-soft">
-                      Score: {m.score}/{m.total}
+                      {m.has_attempted ? `Score: ${m.score}/${m.total}` : 'Not attempted yet'}
                     </div>
                   </div>
                 </div>
 
                 <div className="font-mono font-bold text-lg text-ink-navy">
-                  {m.accuracy}%
+                  {m.has_attempted ? `${m.accuracy}%` : '—'}
                 </div>
               </div>
             ))}

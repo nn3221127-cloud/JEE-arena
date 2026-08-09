@@ -53,16 +53,10 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
   };
 
   // Prepare chart data from attempts
-  const chartData = attempts.length > 0
-    ? attempts.map((a, i) => ({
-        name: a.date || `Test ${i + 1}`,
-        accuracy: a.accuracy
-      }))
-    : [
-        { name: 'Paper 1', accuracy: 60 },
-        { name: 'Paper 2', accuracy: 70 },
-        { name: 'Paper 3', accuracy: 80 }
-      ];
+  const chartData = attempts.map((a, i) => ({
+    name: a.date || `Test ${i + 1}`,
+    accuracy: a.accuracy
+  }));
 
   return (
     <div className="space-y-8 font-sans">
@@ -87,7 +81,7 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
               <span>Targeted Revision Test Available</span>
             </div>
             <p className="text-xs text-graphite-soft">
-              Generate a personalized 5-question test compiled strictly from your historical wrong answers.
+              Generate a personalized test compiled strictly from your historical wrong answers.
             </p>
           </div>
 
@@ -106,69 +100,89 @@ export const ProgressDashboard: React.FC<ProgressDashboardProps> = ({
       {/* Accuracy Over Time Line Chart */}
       <div className="bg-sheet rounded-lg border border-pencil-line p-6 shadow-sm space-y-4">
         <h2 className="text-base font-bold text-graphite">Accuracy Trajectory (%)</h2>
-        <div className="h-64 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <XAxis dataKey="name" stroke="#6B6E76" fontSize={12} tickLine={false} />
-              <YAxis domain={[0, 100]} stroke="#6B6E76" fontSize={12} tickLine={false} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: '#FFFFFF',
-                  borderColor: '#D8D6CC',
-                  borderRadius: '6px',
-                  fontFamily: 'IBM Plex Sans',
-                  fontSize: '12px'
-                }}
-              />
-              <Line
-                type="monotone"
-                dataKey="accuracy"
-                stroke="#1F2A44"
-                strokeWidth={3}
-                dot={{ fill: '#1F2A44', r: 5 }}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        {chartData.length === 0 ? (
+          <div className="h-48 w-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-pencil-line rounded-lg bg-sheet-2/30">
+            <TrendingUp size={28} className="text-graphite-soft mb-2 opacity-60" />
+            <div className="font-sans font-bold text-sm text-graphite">No Practice Completed Yet</div>
+            <p className="text-xs text-graphite-soft max-w-sm mt-1">
+              Start practicing to track your accuracy trajectory over time.
+            </p>
+          </div>
+        ) : (
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={chartData}>
+                <XAxis dataKey="name" stroke="#6B6E76" fontSize={12} tickLine={false} />
+                <YAxis domain={[0, 100]} stroke="#6B6E76" fontSize={12} tickLine={false} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#FFFFFF',
+                    borderColor: '#D8D6CC',
+                    borderRadius: '6px',
+                    fontFamily: 'IBM Plex Sans',
+                    fontSize: '12px'
+                  }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="accuracy"
+                  stroke="#1F2A44"
+                  strokeWidth={3}
+                  dot={{ fill: '#1F2A44', r: 5 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )}
       </div>
 
       {/* Weak Topics Bar Performance List */}
       <div className="bg-sheet rounded-lg border border-pencil-line p-6 shadow-sm space-y-4">
         <h2 className="text-base font-bold text-graphite">Topic-wise Breakdown</h2>
-        <div className="space-y-3">
-          {weakTopics.map((top) => {
-            const isWeak = top.accuracy < 50;
-            return (
-              <div key={top.topic} className="space-y-1">
-                <div className="flex items-center justify-between text-xs font-mono">
-                  <span className="font-semibold text-graphite">
-                    {top.subject} · {top.topic}
-                  </span>
-                  <span className={isWeak ? 'text-red-ink font-bold' : 'text-exam-green font-bold'}>
-                    {top.accuracy}% Accuracy
-                  </span>
+        {weakTopics.length === 0 ? (
+          <div className="p-6 text-center border border-dashed border-pencil-line rounded-lg bg-sheet-2/30">
+            <p className="text-xs font-sans text-graphite-soft">
+              No topic practice completed yet. Attempt questions across test papers to generate a breakdown of your strengths and weaknesses.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {weakTopics.map((top) => {
+              const isWeak = top.accuracy < 50;
+              return (
+                <div key={top.topic} className="space-y-1">
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="font-semibold text-graphite">
+                      {top.subject} · {top.topic}
+                    </span>
+                    <span className={isWeak ? 'text-red-ink font-bold' : 'text-exam-green font-bold'}>
+                      {top.accuracy}% Accuracy
+                    </span>
+                  </div>
+                  <div className="w-full bg-pencil-line/40 h-2 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full transition-all duration-300 ${
+                        isWeak ? 'bg-red-ink' : 'bg-exam-green'
+                      }`}
+                      style={{ width: `${top.accuracy}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-pencil-line/40 h-2 rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all duration-300 ${
-                      isWeak ? 'bg-red-ink' : 'bg-exam-green'
-                    }`}
-                    style={{ width: `${top.accuracy}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Past Attempts Table */}
       <div className="bg-sheet rounded-lg border border-pencil-line p-6 shadow-sm space-y-4">
         <h2 className="text-base font-bold text-graphite">Recent Test Attempts</h2>
         {attempts.length === 0 ? (
-          <p className="text-xs text-graphite-soft py-4">
-            No completed tests found yet. Take a test to record performance.
-          </p>
+          <div className="p-6 text-center border border-dashed border-pencil-line rounded-lg bg-sheet-2/30">
+            <p className="text-xs font-sans text-graphite-soft">
+              No practice completed yet. Start practicing to track your progress.
+            </p>
+          </div>
         ) : (
           <div className="divide-y divide-pencil-line">
             {attempts.map((att) => (

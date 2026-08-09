@@ -275,7 +275,7 @@ app.get('/api/admin/stats', authMiddleware, (req: any, res) => {
     const totalAcc = finishedAttempts.reduce((acc: number, a: any) => acc + (a.accuracy_percentage || 0), 0);
     avg_accuracy = Math.round(totalAcc / finishedAttempts.length);
   } else {
-    avg_accuracy = 78; // Default seed stat baseline
+    avg_accuracy = 0;
   }
 
   res.json({ total_tests, avg_accuracy, active_members });
@@ -666,16 +666,17 @@ app.post('/api/attempts/finish', authMiddleware, (req: any, res) => {
         user_name: u.name,
         score: best.score,
         total: best.total_questions,
-        accuracy: best.accuracy_percentage
+        accuracy: best.accuracy_percentage,
+        has_attempted: true
       };
     } else {
-      // Default baseline for un-attempted seed members
       teamComparisonRaw[u.user_id] = {
         user_id: u.user_id,
         user_name: u.name,
-        score: u.role === 'admin' ? 8 : u.user_id === 'usr_m1' ? 7 : 6,
+        score: 0,
         total: totalQs,
-        accuracy: u.role === 'admin' ? 80 : u.user_id === 'usr_m1' ? 70 : 60
+        accuracy: 0,
+        has_attempted: false
       };
     }
   });
@@ -762,15 +763,37 @@ app.get('/api/attempts/:id/results', authMiddleware, (req: any, res) => {
       accuracy: Math.round(((topicMap[top].total - topicMap[top].wrong) / topicMap[top].total) * 100)
     }));
 
+  const startMs = new Date(attempt.start_time).getTime();
+  const endMs = attempt.finished_at ? new Date(attempt.finished_at).getTime() : Date.now();
+  const diffSecs = Math.max(1, Math.round((endMs - startMs) / 1000));
+  const mins = Math.floor(diffSecs / 60);
+  const secs = diffSecs % 60;
+  const time_spent_text = `${mins}m ${secs}s`;
+
+  const testAttempts = db.attempts.filter((a: any) => a.test_id === attempt.test_id && a.finished_at);
   const teamComparisonRaw: Record<string, any> = {};
   db.users.forEach((u: any) => {
-    teamComparisonRaw[u.user_id] = {
-      user_id: u.user_id,
-      user_name: u.name,
-      score: u.user_id === attempt.user_id ? attempt.score : 7,
-      total: attempt.total_questions,
-      accuracy: u.user_id === attempt.user_id ? attempt.accuracy_percentage : 70
-    };
+    const uAttempts = testAttempts.filter((a: any) => a.user_id === u.user_id);
+    if (uAttempts.length > 0) {
+      const best = uAttempts.reduce((max: any, cur: any) => (cur.score > max.score ? cur : max), uAttempts[0]);
+      teamComparisonRaw[u.user_id] = {
+        user_id: u.user_id,
+        user_name: u.name,
+        score: best.score,
+        total: best.total_questions,
+        accuracy: best.accuracy_percentage,
+        has_attempted: true
+      };
+    } else {
+      teamComparisonRaw[u.user_id] = {
+        user_id: u.user_id,
+        user_name: u.name,
+        score: 0,
+        total: attempt.total_questions,
+        accuracy: 0,
+        has_attempted: false
+      };
+    }
   });
 
   const sortedTeam = Object.values(teamComparisonRaw)
@@ -788,7 +811,7 @@ app.get('/api/attempts/:id/results', authMiddleware, (req: any, res) => {
     score: attempt.score,
     total_questions: attempt.total_questions,
     accuracy_percentage: attempt.accuracy_percentage,
-    time_spent_text: '12m 30s',
+    time_spent_text,
     subject_breakdown,
     weak_topics,
     answers_review: answersReview,
@@ -796,32 +819,77 @@ app.get('/api/attempts/:id/results', authMiddleware, (req: any, res) => {
   });
 });
 
+// Helper: Calculate streak of consecutive days with finished test attempts
+function calculateUserStreak(userAttempts: any[]): number {
+  if (!userAttempts || userAttempts.length === 0) return 0;
+
+  const dates = Array.from(
+    new Set(
+      userAttempts.map((a: any) => new Date(a.finished_at).toISOString().split('T')[0])
+    )
+  ).sort().reverse();
+
+  if (dates.length === 0) return 0;
+
+  let streak = 1;
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+  if (dates[0] !== today && dates[0] !== yesterday) {
+    return 0;
+  }
+
+  for (let i = 0; i < dates.length - 1; i++) {
+    const d1 = new Date(dates[i]).getTime();
+    const d2 = new Date(dates[i + 1]).getTime();
+    const diffDays = Math.round((d1 - d2) / (1000 * 3600 * 24));
+    if (diffDays === 1) {
+      streak += 1;
+    } else {
+      break;
+    }
+  }
+
+  return streak;
+}
+
 // Leaderboard
 app.get('/api/leaderboard', authMiddleware, (req: any, res) => {
   const db = loadDB();
   const users = db.users;
 
-  const leaderboard = users.map((u: any, idx: number) => {
+  const leaderboard = users.map((u: any) => {
     const userAttempts = db.attempts.filter((a: any) => a.user_id === u.user_id && a.finished_at);
     const tests_taken = userAttempts.length;
     const total_score = userAttempts.reduce((sum: number, a: any) => sum + (a.score || 0), 0);
     const overall_accuracy = tests_taken > 0
       ? Math.round(userAttempts.reduce((sum: number, a: any) => sum + (a.accuracy_percentage || 0), 0) / tests_taken)
-      : u.role === 'admin' ? 88 : u.user_id === 'usr_m1' ? 76 : 68;
+      : 0;
+
+    const current_streak = calculateUserStreak(userAttempts);
 
     return {
-      rank: idx + 1,
+      rank: 1,
       user_id: u.user_id,
       user_name: u.name,
-      tests_taken: Math.max(1, tests_taken),
-      total_score: total_score || (u.role === 'admin' ? 24 : 18),
+      tests_taken,
+      total_score,
       overall_accuracy,
-      current_streak: u.role === 'admin' ? 5 : 3,
+      current_streak,
       avatar_letter: u.name.charAt(0)
     };
   });
 
-  leaderboard.sort((a, b) => b.overall_accuracy - a.overall_accuracy);
+  leaderboard.sort((a, b) => {
+    if (b.overall_accuracy !== a.overall_accuracy) {
+      return b.overall_accuracy - a.overall_accuracy;
+    }
+    if (b.tests_taken !== a.tests_taken) {
+      return b.tests_taken - a.tests_taken;
+    }
+    return b.total_score - a.total_score;
+  });
+
   leaderboard.forEach((item, index) => { item.rank = index + 1; });
 
   res.json(leaderboard);
@@ -832,21 +900,16 @@ app.get('/api/members/weak-topics', authMiddleware, (req: any, res) => {
   const db = loadDB();
   const userAttempts = db.attempts.filter((a: any) => a.user_id === req.user.user_id && a.finished_at);
 
-  const topicMap: Record<string, { subject: string; total: number; wrong: number }> = {};
-
   if (userAttempts.length === 0) {
-    // Return sample baseline weak topics if no test taken yet
-    return res.json([
-      { subject: 'Mathematics', topic: 'Permutations & Combinations', total_attempted: 5, wrong_count: 3, accuracy: 40 },
-      { subject: 'Chemistry', topic: 'Coordination Chemistry', total_attempted: 4, wrong_count: 2, accuracy: 50 },
-      { subject: 'Physics', topic: 'Alternating Current', total_attempted: 6, wrong_count: 3, accuracy: 50 }
-    ]);
+    return res.json([]);
   }
+
+  const topicMap: Record<string, { subject: string; total: number; wrong: number }> = {};
 
   userAttempts.forEach((att: any) => {
     const test = db.tests.find((t: any) => t.id === att.test_id);
     test?.questions.forEach((q: any) => {
-      const userAns = att.answers[q.id];
+      const userAns = att.answers?.[q.id];
       const isCorr = userAns && userAns.selected_index === q.correct_option_index;
       if (!topicMap[q.topic]) topicMap[q.topic] = { subject: q.subject, total: 0, wrong: 0 };
       topicMap[q.topic].total += 1;
@@ -866,21 +929,45 @@ app.get('/api/members/weak-topics', authMiddleware, (req: any, res) => {
   res.json(list);
 });
 
-// Retake Weak Questions (Generate fresh test)
+// Retake Weak Questions (Generate fresh test from actual user wrong answers)
 app.post('/api/members/retake-test', authMiddleware, (req: any, res) => {
   const db = loadDB();
-  const weakQuestions = SEED_JEE_QUESTIONS.slice(0, 5);
+  const userAttempts = db.attempts.filter((a: any) => a.user_id === req.user.user_id && a.finished_at);
+
+  const wrongQuestionMap = new Map<string, any>();
+
+  userAttempts.forEach((att: any) => {
+    const test = db.tests.find((t: any) => t.id === att.test_id);
+    if (!test || !test.questions) return;
+
+    test.questions.forEach((q: any) => {
+      const userAns = att.answers?.[q.id];
+      if (userAns && userAns.selected_index !== q.correct_option_index) {
+        wrongQuestionMap.set(q.id, q);
+      }
+    });
+  });
+
+  const weakQuestions = Array.from(wrongQuestionMap.values());
+
+  if (weakQuestions.length === 0) {
+    return res.status(400).json({
+      message: 'No weak questions found. Complete practice tests and miss some questions to generate a targeted revision test.'
+    });
+  }
+
+  const selectedQuestions = weakQuestions.slice(0, 10);
 
   const retakeTest = {
     id: `test_retake_${Date.now()}`,
     title: 'Personalized Weak Topics Revision Test',
     description: 'Auto-compiled revision paper focused on your historical wrong answers.',
     status: 'published',
-    question_count: weakQuestions.length,
-    estimated_time_minutes: 10,
+    question_count: selectedQuestions.length,
+    estimated_time_minutes: Math.max(5, Math.round(selectedQuestions.length * 1.5)),
     created_at: new Date().toISOString(),
-    subjects: Array.from(new Set(weakQuestions.map((q) => q.subject))),
-    questions: weakQuestions
+    subjects: Array.from(new Set(selectedQuestions.map((q) => q.subject))),
+    questions: selectedQuestions
   };
 
   db.tests.unshift(retakeTest);
