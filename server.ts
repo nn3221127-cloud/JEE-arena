@@ -29,6 +29,14 @@ const adminDb = getAdminFirestore(firebaseConfig.firestoreDatabaseId);
 const clientApp = initClientApp(firebaseConfig);
 const clientDb = getClientFirestore(clientApp, firebaseConfig.firestoreDatabaseId);
 
+// --- PERMISSIONS MODEL ---
+const PERMISSIONS = {
+  canAttemptQuiz: (role?: string) => role === 'admin' || role === 'member',
+  canTrackProgress: (role?: string) => role === 'admin' || role === 'member',
+  canManageTests: (role?: string) => role === 'admin',
+  canViewAdminAnalytics: (role?: string) => role === 'admin',
+};
+
 // Seed Users & Initial Schema
 const SEED_USERS = [
   {
@@ -296,17 +304,21 @@ app.get('/api/auth/me', authMiddleware, (req: any, res) => {
 
 // Admin / Platform Stats
 app.get('/api/admin/stats', authMiddleware, async (req: any, res) => {
+  if (!PERMISSIONS.canViewAdminAnalytics(req.user.role)) {
+    return res.status(403).json({ message: 'Forbidden: Admin access required.' });
+  }
+
   const db = await loadDB();
   const total_tests = db.tests ? db.tests.length : 0;
 
-  // Filter strictly for student members (excluding admins)
-  const studentMembers = db.users ? db.users.filter((u: any) => u.role === 'member') : [];
-  const active_members = studentMembers.length;
-  const studentUserIds = new Set(studentMembers.map((u: any) => u.user_id));
+  // Include all eligible learners (admin + members)
+  const learners = db.users ? db.users.filter((u: any) => PERMISSIONS.canAttemptQuiz(u.role)) : [];
+  const active_members = learners.length;
+  const learnerUserIds = new Set(learners.map((u: any) => u.user_id));
 
-  // Filter strictly for finished student attempts
+  // Filter finished attempts for all eligible learners
   const finishedStudentAttempts = (db.attempts || []).filter(
-    (a: any) => a.finished_at && studentUserIds.has(a.user_id)
+    (a: any) => a.finished_at && learnerUserIds.has(a.user_id)
   );
 
   let avg_accuracy = 0;
@@ -330,16 +342,17 @@ app.get('/api/tests', authMiddleware, async (req: any, res) => {
   const db = await loadDB();
   let tests = db.tests || [];
 
-  const studentMembers = db.users ? db.users.filter((u: any) => u.role === 'member') : [];
-  const studentUserIds = new Set(studentMembers.map((u: any) => u.user_id));
+  const learners = db.users ? db.users.filter((u: any) => PERMISSIONS.canAttemptQuiz(u.role)) : [];
+  const learnerUserIds = new Set(learners.map((u: any) => u.user_id));
 
-  if (req.user.role === 'member') {
+  // Non-admin learners can only view published tests
+  if (!PERMISSIONS.canManageTests(req.user.role)) {
     tests = tests.filter((t: any) => t.status === 'published');
   }
 
   const summaries = tests.map((t: any) => {
     const testAttempts = (db.attempts || []).filter(
-      (a: any) => a.test_id === t.id && studentUserIds.has(a.user_id) && a.finished_at
+      (a: any) => a.test_id === t.id && learnerUserIds.has(a.user_id) && a.finished_at
     );
     const attemptedStudentIds = new Set(testAttempts.map((a: any) => a.user_id));
 
@@ -352,7 +365,7 @@ app.get('/api/tests', authMiddleware, async (req: any, res) => {
       estimated_time_minutes: t.estimated_time_minutes || 15,
       created_at: t.created_at,
       subjects: Array.from(new Set(t.questions?.map((q: any) => q.subject) || [])),
-      active_student_count: studentMembers.length,
+      active_student_count: learners.length,
       attempted_student_count: attemptedStudentIds.size
     };
   });
@@ -631,9 +644,9 @@ STRICT FORMATTING & LATEX INSTRUCTIONS:
 
 // Start Attempt
 app.post('/api/attempts/start', authMiddleware, async (req: any, res) => {
-  if (req.user.role === 'admin') {
+  if (!PERMISSIONS.canAttemptQuiz(req.user.role)) {
     return res.status(403).json({
-      message: 'Admins cannot initiate student attempt sessions. Use Admin Preview mode to inspect test papers.'
+      message: 'Your role is not authorized to attempt quizzes.'
     });
   }
 
@@ -642,6 +655,11 @@ app.post('/api/attempts/start', authMiddleware, async (req: any, res) => {
   const test = db.tests.find((t: any) => t.id === test_id);
   if (!test) {
     return res.status(404).json({ message: 'Test not found.' });
+  }
+
+  // Non-admins cannot attempt non-published tests
+  if (!PERMISSIONS.canManageTests(req.user.role) && test.status !== 'published') {
+    return res.status(403).json({ message: 'This test paper is not yet published.' });
   }
 
   const attempt_id = `att_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -837,14 +855,14 @@ app.post('/api/attempts/finish', authMiddleware, async (req: any, res) => {
       accuracy: Math.round(((topicMap[top].total - topicMap[top].wrong) / topicMap[top].total) * 100)
     }));
 
-  // Team Comparison for this test (Student Members only)
-  const studentMembers = db.users.filter((u: any) => u.role === 'member');
-  const studentUserIds = new Set(studentMembers.map((u: any) => u.user_id));
-  const testAttempts = db.attempts.filter((a: any) => a.test_id === test.id && a.finished_at && studentUserIds.has(a.user_id));
+  // Team Comparison for this test (All eligible learners)
+  const learners = db.users.filter((u: any) => PERMISSIONS.canAttemptQuiz(u.role));
+  const learnerUserIds = new Set(learners.map((u: any) => u.user_id));
+  const testAttempts = db.attempts.filter((a: any) => a.test_id === test.id && a.finished_at && learnerUserIds.has(a.user_id));
   const teamComparisonRaw: Record<string, any> = {};
 
-  // Find best score for each student member
-  studentMembers.forEach((u: any) => {
+  // Find best score for each learner
+  learners.forEach((u: any) => {
     const uAttempts = testAttempts.filter((a: any) => a.user_id === u.user_id);
     if (uAttempts.length > 0) {
       const best = uAttempts.reduce((max: any, cur: any) => (cur.score > max.score ? cur : max), uAttempts[0]);
@@ -1049,12 +1067,12 @@ function calculateUserStreak(userAttempts: any[]): number {
   return streak;
 }
 
-// Leaderboard (Students ONLY)
+// Leaderboard (All Eligible Learners)
 app.get('/api/leaderboard', authMiddleware, async (req: any, res) => {
   const db = await loadDB();
-  const studentUsers = (db.users || []).filter((u: any) => u.role === 'member');
+  const learners = (db.users || []).filter((u: any) => PERMISSIONS.canAttemptQuiz(u.role));
 
-  const leaderboard = studentUsers.map((u: any) => {
+  const leaderboard = learners.map((u: any) => {
     const userAttempts = db.attempts.filter((a: any) => a.user_id === u.user_id && a.finished_at);
     const tests_taken = userAttempts.length;
     const total_score = userAttempts.reduce((sum: number, a: any) => sum + (a.score || 0), 0);

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { api, AuthUser, TestSummary } from '../api/client';
+import { PERMISSIONS } from '../lib/permissions';
 import { RegistrationCorners } from '../components/RegistrationCorners';
 import { WireframeScene } from '../components/WireframeScene';
 import { DigitBox } from '../components/DigitBox';
-import { Play, Sparkles, Eye } from 'lucide-react';
+import { Play, Sparkles, Eye, Award } from 'lucide-react';
 
 interface TestStartProps {
   testId: string;
@@ -13,14 +14,14 @@ interface TestStartProps {
 }
 
 /**
- * Screen 4.4: Test Start Screen (Member / Preview)
+ * Screen 4.4: Test Start Screen (Member / Admin Learner Mode)
  */
 export const TestStart: React.FC<TestStartProps> = ({ testId, user, onStartTest, onBack }) => {
   const [test, setTest] = useState<any | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = PERMISSIONS.canManageTests(user?.role);
 
   useEffect(() => {
     const fetchTest = async () => {
@@ -37,17 +38,24 @@ export const TestStart: React.FC<TestStartProps> = ({ testId, user, onStartTest,
     fetchTest();
   }, [testId]);
 
-  const handleStart = async () => {
+  const handleStartReal = async () => {
     if (!testId) return;
     setIsStarting(true);
     try {
-      if (isAdmin) {
-        const previewSession = await api.getTestPreview(testId);
-        onStartTest(previewSession);
-      } else {
-        const session = await api.startAttempt(testId);
-        onStartTest(session);
-      }
+      const session = await api.startAttempt(testId);
+      onStartTest(session);
+    } catch (err) {
+      console.error(err);
+      setIsStarting(false);
+    }
+  };
+
+  const handleStartPreview = async () => {
+    if (!testId) return;
+    setIsStarting(true);
+    try {
+      const previewSession = await api.getTestPreview(testId);
+      onStartTest(previewSession);
     } catch (err) {
       console.error(err);
       setIsStarting(false);
@@ -79,16 +87,14 @@ export const TestStart: React.FC<TestStartProps> = ({ testId, user, onStartTest,
             <div className={`inline-flex items-center gap-2 px-2.5 py-0.5 rounded border text-xs font-mono font-semibold ${
               isAdmin ? 'bg-amber-flag/10 border-amber-flag/40 text-amber-flag' : 'bg-sheet-2 border-pencil-line text-graphite-soft'
             }`}>
-              {isAdmin ? <Eye size={14} className="text-amber-flag" /> : <Sparkles size={14} className="text-ink-navy" />}
-              <span>{isAdmin ? 'ADMIN PREVIEW MODE' : 'JEE MOCK TEST'}</span>
+              {isAdmin ? <Award size={14} className="text-amber-flag" /> : <Sparkles size={14} className="text-ink-navy" />}
+              <span>{isAdmin ? 'ADMIN LEARNER & INSPECTION MODE' : 'JEE MOCK TEST'}</span>
             </div>
             <h1 className="text-2xl font-bold font-sans tracking-tight text-graphite">
               {test.title}
             </h1>
             <p className="text-sm font-sans text-graphite-soft leading-relaxed">
-              {isAdmin
-                ? 'Review paper structure, question options, and solutions as an inspector without recording student attempts or altering leaderboards.'
-                : test.description || 'Practice under timed JEE exam conditions with step-by-step solutions.'}
+              {test.description || 'Practice under timed JEE exam conditions with step-by-step solutions.'}
             </p>
           </div>
 
@@ -126,26 +132,38 @@ export const TestStart: React.FC<TestStartProps> = ({ testId, user, onStartTest,
             ))}
           </div>
 
-          {/* CTA "Start Test" Primary Button */}
-          <div className="pt-2">
+          {/* Action Buttons */}
+          <div className="pt-2 space-y-2.5">
+            {/* Main Action: Start Real Graded Attempt (Records score & progress) */}
             <button
               type="button"
-              onClick={handleStart}
+              onClick={handleStartReal}
               disabled={isStarting}
               className="w-full h-12 rounded-md bg-ink-navy hover:bg-ink-navy/90 text-white font-sans font-bold text-base shadow-md transition-all flex items-center justify-center gap-2.5 cursor-pointer disabled:opacity-50"
             >
-              {isAdmin ? <Eye size={18} /> : <Play size={18} fill="currentColor" />}
+              <Play size={18} fill="currentColor" />
               <span>
-                {isStarting
-                  ? isAdmin ? 'Launching Preview...' : 'Initiating Test...'
-                  : isAdmin ? 'Start Admin Preview' : 'Start Test'}
+                {isStarting ? 'Initiating Test...' : 'Start Graded Test Attempt'}
               </span>
             </button>
+
+            {/* Optional Admin Inspection Preview button */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={handleStartPreview}
+                disabled={isStarting}
+                className="w-full h-10 rounded-md bg-sheet-2 border border-pencil-line hover:bg-sheet-3 text-graphite-soft hover:text-graphite font-sans font-semibold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                <Eye size={16} className="text-amber-flag" />
+                <span>Inspection Preview (No Progress Recorded)</span>
+              </button>
+            )}
 
             <button
               type="button"
               onClick={onBack}
-              className="w-full mt-3 text-center text-xs font-mono text-graphite-soft hover:text-graphite cursor-pointer"
+              className="w-full mt-2 text-center text-xs font-mono text-graphite-soft hover:text-graphite cursor-pointer"
             >
               ← Back to tests
             </button>
@@ -155,3 +173,4 @@ export const TestStart: React.FC<TestStartProps> = ({ testId, user, onStartTest,
     </div>
   );
 };
+

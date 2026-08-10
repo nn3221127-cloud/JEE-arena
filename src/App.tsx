@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api, AuthUser, QuestionDraft, AttemptSession } from './api/client';
+import { PERMISSIONS } from './lib/permissions';
 import { AppShell } from './components/AppShell';
 import { Login } from './pages/Login';
 import { AdminDashboard } from './pages/AdminDashboard';
@@ -34,7 +35,7 @@ export default function App() {
       try {
         const authUser = await api.getMe();
         setUser(authUser);
-        setActiveNav(authUser.role === 'admin' ? 'dashboard' : 'home');
+        setActiveNav(PERMISSIONS.canManageTests(authUser.role) ? 'dashboard' : 'home');
       } catch (err) {
         console.error('Session expired:', err);
         api.logout();
@@ -47,7 +48,7 @@ export default function App() {
 
   const handleLoginSuccess = (authUser: AuthUser) => {
     setUser(authUser);
-    setActiveNav(authUser.role === 'admin' ? 'dashboard' : 'home');
+    setActiveNav(PERMISSIONS.canManageTests(authUser.role) ? 'dashboard' : 'home');
   };
 
   const handleLogout = () => {
@@ -73,7 +74,7 @@ export default function App() {
   };
 
   const handlePublishSuccess = () => {
-    setActiveNav(user?.role === 'admin' ? 'dashboard' : 'home');
+    setActiveNav(user && PERMISSIONS.canManageTests(user.role) ? 'dashboard' : 'home');
   };
 
   const handleStartAttempt = (session: AttemptSession) => {
@@ -83,7 +84,7 @@ export default function App() {
 
   const handleFinishAttempt = (attemptId: string) => {
     if (attemptId === 'preview_finished') {
-      setActiveNav(user?.role === 'admin' ? 'dashboard' : 'home');
+      setActiveNav(user && PERMISSIONS.canManageTests(user.role) ? 'dashboard' : 'home');
       return;
     }
     setCompletedAttemptId(attemptId);
@@ -110,7 +111,7 @@ export default function App() {
       onLogout={handleLogout}
     >
       {/* Admin Dashboard */}
-      {activeNav === 'dashboard' && user.role === 'admin' && (
+      {activeNav === 'dashboard' && PERMISSIONS.canViewAdminAnalytics(user.role) && (
         <AdminDashboard user={user} onNavigate={handleNavigate} />
       )}
 
@@ -120,12 +121,12 @@ export default function App() {
       )}
 
       {/* Step 1: Upload Paper */}
-      {activeNav === 'upload' && (
+      {activeNav === 'upload' && PERMISSIONS.canManageTests(user.role) && (
         <QuestionUpload onExtractionComplete={handleExtractionComplete} />
       )}
 
       {/* Step 2 & 3: Question Review & Publish */}
-      {activeNav === 'review' && (
+      {activeNav === 'review' && PERMISSIONS.canManageTests(user.role) && (
         <QuestionReview
           initialQuestions={extractedQuestions}
           extractionWarning={extractionWarning}
@@ -139,7 +140,7 @@ export default function App() {
           testId={selectedTestId}
           user={user}
           onStartTest={handleStartAttempt}
-          onBack={() => setActiveNav(user.role === 'admin' ? 'dashboard' : 'home')}
+          onBack={() => setActiveNav(PERMISSIONS.canManageTests(user.role) ? 'dashboard' : 'home')}
         />
       )}
 
@@ -160,7 +161,7 @@ export default function App() {
       )}
 
       {/* Progress Dashboard */}
-      {activeNav === 'progress' && (
+      {activeNav === 'progress' && PERMISSIONS.canTrackProgress(user.role) && (
         <ProgressDashboard
           onNavigate={handleNavigate}
           onStartRetakeTest={(testId) => handleNavigate('test-start', testId)}

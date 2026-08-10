@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api, AuthUser, TestSummary } from '../api/client';
+import { PERMISSIONS } from '../lib/permissions';
 import { RegistrationCorners } from '../components/RegistrationCorners';
 import { DigitBox } from '../components/DigitBox';
 import { Plus, FileText, CheckCircle2, Archive, Play, BarChart3, Users } from 'lucide-react';
@@ -17,7 +18,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate
   const [tests, setTests] = useState<TestSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = PERMISSIONS.canManageTests(user?.role);
+
 
   const loadData = async () => {
     setIsLoading(true);
@@ -224,7 +226,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user, onNavigate
                       className="px-3.5 py-1.5 rounded text-xs font-sans font-semibold bg-sheet border border-pencil-line hover:bg-sheet-2 text-graphite transition-colors flex items-center gap-1.5 cursor-pointer shadow-xs"
                     >
                       <Play size={14} className="text-ink-navy" />
-                      <span>{isAdmin ? 'Preview' : 'Start Test'}</span>
+                      <span>{isAdmin ? 'Take / Preview Test' : 'Start Test'}</span>
                     </button>
 
                     {isAdmin && test.status === 'draft' && (

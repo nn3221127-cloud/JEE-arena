@@ -1,5 +1,6 @@
 import React from 'react';
 import { AuthUser, api } from '../api/client';
+import { PERMISSIONS } from '../lib/permissions';
 import { LayoutDashboard, FileText, Upload, Trophy, TrendingUp, LogOut, Moon, Sun } from 'lucide-react';
 
 interface AppShellProps {
@@ -32,8 +33,9 @@ export const AppShell: React.FC<AppShellProps> = ({
 
   const adminNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'tests', label: 'Tests', icon: FileText },
+    { id: 'home', label: 'Tests', icon: FileText },
     { id: 'upload', label: 'Upload Paper', icon: Upload },
+    { id: 'progress', label: 'My Progress', icon: TrendingUp },
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy }
   ];
 
@@ -43,7 +45,8 @@ export const AppShell: React.FC<AppShellProps> = ({
     { id: 'leaderboard', label: 'Leaderboard', icon: Trophy }
   ];
 
-  const navItems = user.role === 'admin' ? adminNavItems : memberNavItems;
+  const navItems = PERMISSIONS.canManageTests(user.role) ? adminNavItems : memberNavItems;
+
 
   return (
     <div className="min-h-screen bg-paper text-graphite flex flex-col font-sans">
