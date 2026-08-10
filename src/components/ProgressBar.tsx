@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'motion/react';
 
 interface ProgressBarProps {
   current: number;
@@ -8,7 +9,7 @@ interface ProgressBarProps {
 
 /**
  * ProgressBar Component:
- * Thin progress bar fill with ink-navy color.
+ * Thin progress bar fill with ink-navy color and smooth motion transition.
  */
 export const ProgressBar: React.FC<ProgressBarProps> = ({
   current,
@@ -19,9 +20,11 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
 
   return (
     <div className={`w-full bg-pencil-line/40 h-1.5 rounded-full overflow-hidden ${className}`}>
-      <div
-        className="bg-ink-navy h-full transition-all duration-300 ease-out"
-        style={{ width: `${percentage}%` }}
+      <motion.div
+        className="bg-ink-navy h-full"
+        initial={{ width: 0 }}
+        animate={{ width: `${percentage}%` }}
+        transition={{ duration: 0.3, ease: 'easeOut' }}
       />
     </div>
   );

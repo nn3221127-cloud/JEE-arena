@@ -1,0 +1,286 @@
+{
+  "users": [
+    {
+      "user_id": "usr_admin",
+      "name": "Admin",
+      "role": "admin",
+      "password_hash": "$2b$10$EWN5QhNm/.ajC.aTiiDwyOjQQwp9IcoJ63svqM10.vjiFA2XK04FK"
+    },
+    {
+      "user_id": "usr_m1",
+      "name": "Member 1",
+      "role": "member",
+      "password_hash": "$2b$10$hXd1rd0IxsvRWcgHnpbJC.7u4bErGHod3MjzB1QNd//d4TjB.u4.m"
+    },
+    {
+      "user_id": "usr_m2",
+      "name": "Member 2",
+      "role": "member",
+      "password_hash": "$2b$10$GBOB06MCDREb2vdZ1DhhYeW4nmuJ.i/iEUwl1ZL.t8jIU49X8rOJ."
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_jee_main_1",
+      "title": "JEE Main Full Mock Test #01",
+      "description": "High-yield practice paper covering Physics, Chemistry, and Mathematics.",
+      "status": "published",
+      "question_count": 10,
+      "estimated_time_minutes": 15,
+      "created_at": "2026-08-07T00:55:16.539Z",
+      "subjects": [
+        "Physics",
+        "Chemistry",
+        "Mathematics"
+      ],
+      "questions": [
+        {
+          "id": "q_chem_1",
+          "question_text": "For a first-order reaction, if the rate constant k is 6.93 × 10⁻³ s⁻¹, what is the half-life period (t₁/₂) of the reaction?",
+          "options": [
+            "100 seconds",
+            "69.3 seconds",
+            "10 seconds",
+            "1000 seconds"
+          ],
+          "correct_option_index": 0,
+          "explanation": "For a first-order reaction, t₁/₂ = 0.693 / k = 0.693 / (6.93 × 10⁻³) = 100 seconds.",
+          "subject": "Chemistry",
+          "topic": "Chemical Kinetics",
+          "difficulty": "easy"
+        },
+        {
+          "id": "q_phy_1",
+          "question_text": "A particle of mass m moves in a circular path of radius r with a uniform speed v. What is the work done by the centripetal force during one complete revolution?",
+          "options": [
+            "2πrmv²",
+            "Zero",
+            "mv²/r",
+            "πmv²"
+          ],
+          "correct_option_index": 1,
+          "explanation": "The centripetal force acts perpendicular to the instantaneous displacement at all points along the circular path, so W = F · d = F d cos(90°) = 0.",
+          "subject": "Physics",
+          "topic": "Work, Power & Energy",
+          "difficulty": "easy"
+        },
+        {
+          "id": "q_math_1",
+          "question_text": "What is the value of the limit: lim(x → 0) (sin 3x / tan 2x)?",
+          "options": [
+            "3/2",
+            "2/3",
+            "1",
+            "6"
+          ],
+          "correct_option_index": 0,
+          "explanation": "lim(x→0) (sin 3x / 3x * 3x) / (tan 2x / 2x * 2x) = (1 * 3x) / (1 * 2x) = 3/2.",
+          "subject": "Mathematics",
+          "topic": "Limits & Calculus",
+          "difficulty": "easy"
+        },
+        {
+          "id": "q_chem_2",
+          "question_text": "Which of the following coordination compounds exhibits optical isomerism?",
+          "options": [
+            "[Co(NH₃)₆]³⁺",
+            "trans-[Co(en)₂Cl₂]⁺",
+            "cis-[Co(en)₂Cl₂]⁺",
+            "[Ni(CN)₄]²⁻"
+          ],
+          "correct_option_index": 2,
+          "explanation": "cis-[Co(en)₂Cl₂]⁺ lacks a plane or center of symmetry, making its mirror image non-superimposable (optically active). Trans isomer has a plane of symmetry.",
+          "subject": "Chemistry",
+          "topic": "Coordination Chemistry",
+          "difficulty": "medium"
+        },
+        {
+          "id": "q_phy_2",
+          "question_text": "In an AC circuit, the instantaneous current and voltage are given by I = 5 sin(100πt) A and V = 200 sin(100πt + π/3) V. Calculate the average power consumed in the circuit.",
+          "options": [
+            "500 W",
+            "250 W",
+            "1000 W",
+            "125 W"
+          ],
+          "correct_option_index": 1,
+          "explanation": "Power = V_rms * I_rms * cos(φ) = (200/√2) * (5/√2) * cos(60°) = 500 * (1/2) = 250 W.",
+          "subject": "Physics",
+          "topic": "Alternating Current",
+          "difficulty": "medium"
+        },
+        {
+          "id": "q_math_2",
+          "question_text": "If A and B are square matrices of the same order such that AB = A and BA = B, then A² + B² is equal to:",
+          "options": [
+            "A + B",
+            "AB",
+            "A - B",
+            "2I"
+          ],
+          "correct_option_index": 0,
+          "explanation": "A² = A(AB) = (AA)B = AB = A. Similarly B² = B. Therefore A² + B² = A + B.",
+          "subject": "Mathematics",
+          "topic": "Matrices & Determinants",
+          "difficulty": "medium"
+        },
+        {
+          "id": "q_chem_3",
+          "question_text": "What is the major organic product formed when phenol reacts with chloroform and aqueous NaOH (Reimer-Tiemann reaction)?",
+          "options": [
+            "Benzoic acid",
+            "Salicylaldehyde",
+            "Salicylic acid",
+            "Benzaldehyde"
+          ],
+          "correct_option_index": 1,
+          "explanation": "Reimer-Tiemann reaction converts phenol to o-hydroxybenzaldehyde (salicylaldehyde) via dichlorocarbene intermediate.",
+          "subject": "Chemistry",
+          "topic": "Organic Chemistry",
+          "difficulty": "medium"
+        },
+        {
+          "id": "q_phy_3",
+          "question_text": "Two identical capacitors are connected in parallel and charged to a potential V. They are then disconnected and connected in series. What is the new potential difference across the combination?",
+          "options": [
+            "V / 2",
+            "V",
+            "2V",
+            "4V"
+          ],
+          "correct_option_index": 2,
+          "explanation": "Each capacitor is charged to potential V. Connecting them in series adds their potential differences V + V = 2V.",
+          "subject": "Physics",
+          "topic": "Electrostatics",
+          "difficulty": "easy"
+        },
+        {
+          "id": "q_math_3",
+          "question_text": "Find the number of words that can be formed from the letters of the word \"TRIANGLE\" such that the vowels always occupy odd places.",
+          "options": [
+            "1440",
+            "2880",
+            "5760",
+            "720"
+          ],
+          "correct_option_index": 1,
+          "explanation": "Vowels = I, A, E (3 vowels). Total positions = 8 (Odd positions: 1, 3, 5, 7 - 4 places). 3 vowels can be arranged in 4 odd places in ⁴P₃ = 24 ways. The remaining 5 consonants fit in 5 remaining places in 5! = 120 ways. Total = 24 * 120 = 2880.",
+          "subject": "Mathematics",
+          "topic": "Permutations & Combinations",
+          "difficulty": "hard"
+        },
+        {
+          "id": "q_chem_4",
+          "question_text": "Which noble gas has the highest boiling point at atmospheric pressure?",
+          "options": [
+            "Helium (He)",
+            "Neon (Ne)",
+            "Argon (Ar)",
+            "Xenon (Xe)"
+          ],
+          "correct_option_index": 3,
+          "explanation": "Boiling point increases down Group 18 with increasing atomic mass and polarizability of London dispersion forces. Xenon has the highest boiling point among these.",
+          "subject": "Chemistry",
+          "topic": "Inorganic Chemistry",
+          "difficulty": "easy"
+        }
+      ]
+    }
+  ],
+  "attempts": [
+    {
+      "attempt_id": "att_1786324133247_on8k0",
+      "user_id": "usr_m1",
+      "user_name": "Member 1",
+      "test_id": "test_jee_main_1",
+      "test_title": "JEE Main Full Mock Test #01",
+      "start_time": "2026-08-10T01:08:53.247Z",
+      "answers": {},
+      "finished_at": null,
+      "score": 0,
+      "total_questions": 10,
+      "accuracy_percentage": 0
+    },
+    {
+      "attempt_id": "att_1786324137537_ytlz3",
+      "user_id": "usr_m1",
+      "user_name": "Member 1",
+      "test_id": "test_jee_main_1",
+      "test_title": "JEE Main Full Mock Test #01",
+      "start_time": "2026-08-10T01:08:57.537Z",
+      "answers": {},
+      "finished_at": null,
+      "score": 0,
+      "total_questions": 10,
+      "accuracy_percentage": 0
+    },
+    {
+      "attempt_id": "att_1786324144856_teaa0",
+      "user_id": "usr_m1",
+      "user_name": "Member 1",
+      "test_id": "test_jee_main_1",
+      "test_title": "JEE Main Full Mock Test #01",
+      "start_time": "2026-08-10T01:09:04.856Z",
+      "answers": {},
+      "finished_at": null,
+      "score": 0,
+      "total_questions": 10,
+      "accuracy_percentage": 0
+    },
+    {
+      "attempt_id": "att_1786324151248_426ej",
+      "user_id": "usr_m1",
+      "user_name": "Member 1",
+      "test_id": "test_jee_main_1",
+      "test_title": "JEE Main Full Mock Test #01",
+      "start_time": "2026-08-10T01:09:11.248Z",
+      "answers": {},
+      "finished_at": null,
+      "score": 0,
+      "total_questions": 10,
+      "accuracy_percentage": 0
+    }
+  ],
+  "sessions": {
+    "tok_1786323338076_z2vjwdd": {
+      "user_id": "usr_admin",
+      "created_at": "2026-08-10T00:55:38.076Z"
+    },
+    "tok_1786324115777_v5gzkrk": {
+      "user_id": "usr_m1",
+      "created_at": "2026-08-10T01:08:35.777Z"
+    },
+    "tok_1786324133228_ye9nkoo": {
+      "user_id": "usr_m1",
+      "created_at": "2026-08-10T01:08:53.228Z"
+    },
+    "tok_1786324137525_2xvntub": {
+      "user_id": "usr_m1",
+      "created_at": "2026-08-10T01:08:57.525Z"
+    },
+    "tok_1786324137858_92y0tzh": {
+      "user_id": "usr_m2",
+      "created_at": "2026-08-10T01:08:57.858Z"
+    },
+    "tok_1786324144842_yj9acve": {
+      "user_id": "usr_m1",
+      "created_at": "2026-08-10T01:09:04.842Z"
+    },
+    "tok_1786324145169_7vp3b64": {
+      "user_id": "usr_m2",
+      "created_at": "2026-08-10T01:09:05.169Z"
+    },
+    "tok_1786324151230_03q75b9": {
+      "user_id": "usr_m1",
+      "created_at": "2026-08-10T01:09:11.230Z"
+    },
+    "tok_1786324151544_9pq3vfm": {
+      "user_id": "usr_m2",
+      "created_at": "2026-08-10T01:09:11.544Z"
+    },
+    "tok_1786324192413_qh0thla": {
+      "user_id": "usr_admin",
+      "created_at": "2026-08-10T01:09:52.413Z"
+    }
+  }
+}

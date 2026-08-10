@@ -4,6 +4,7 @@ import { Stepper } from '../components/Stepper';
 import { RegistrationCorners } from '../components/RegistrationCorners';
 import { DigitBox } from '../components/DigitBox';
 import { AlertCircle, Trash2, CheckCircle2, Plus } from 'lucide-react';
+import { MathText } from '../components/MathText';
 
 interface QuestionReviewProps {
   initialQuestions: QuestionDraft[];
@@ -225,6 +226,14 @@ export const QuestionReview: React.FC<QuestionReviewProps> = ({
                   rows={3}
                   className="w-full p-3 rounded border border-pencil-line bg-sheet-2 text-graphite font-sans text-base focus:outline-none focus:ring-1 focus:ring-ink-navy"
                 />
+                {q.question_text && (
+                  <div className="mt-2 p-3 rounded border border-pencil-line/60 bg-sheet text-sm font-sans text-graphite">
+                    <span className="block text-[10px] font-mono text-graphite-soft uppercase mb-1 font-semibold">
+                      Live LaTeX Preview:
+                    </span>
+                    <MathText text={q.question_text} />
+                  </div>
+                )}
               </div>
 
               {/* Options 2x2 Grid */}
@@ -235,32 +244,41 @@ export const QuestionReview: React.FC<QuestionReviewProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {['A', 'B', 'C', 'D'].map((letter, optIndex) => {
                     const isCorrect = q.correct_option_index === optIndex;
+                    const optionVal = q.options[optIndex] || '';
                     return (
                       <div
                         key={optIndex}
-                        className={`flex items-center gap-2.5 p-2 rounded border transition-colors ${
+                        className={`p-2.5 rounded border transition-colors ${
                           isCorrect
                             ? 'bg-exam-green-soft/40 border-exam-green'
                             : 'bg-sheet border-pencil-line'
                         }`}
                       >
-                        <input
-                          type="radio"
-                          name={`correct_opt_${qIndex}`}
-                          checked={isCorrect}
-                          onChange={() => handleSetCorrectOption(qIndex, optIndex)}
-                          className="w-4 h-4 text-ink-navy focus:ring-ink-navy cursor-pointer"
-                        />
-                        <span className="font-mono font-bold text-xs text-graphite-soft w-4">
-                          {letter}.
-                        </span>
-                        <input
-                          type="text"
-                          value={q.options[optIndex] || ''}
-                          onChange={(e) => handleUpdateOptionText(qIndex, optIndex, e.target.value)}
-                          placeholder={`Option ${letter}`}
-                          className="flex-1 p-1.5 text-sm font-sans bg-transparent text-graphite border-b border-transparent focus:border-pencil-line focus:outline-none"
-                        />
+                        <div className="flex items-center gap-2.5">
+                          <input
+                            type="radio"
+                            name={`correct_opt_${qIndex}`}
+                            checked={isCorrect}
+                            onChange={() => handleSetCorrectOption(qIndex, optIndex)}
+                            className="w-4 h-4 text-ink-navy focus:ring-ink-navy cursor-pointer"
+                          />
+                          <span className="font-mono font-bold text-xs text-graphite-soft w-4">
+                            {letter}.
+                          </span>
+                          <input
+                            type="text"
+                            value={optionVal}
+                            onChange={(e) => handleUpdateOptionText(qIndex, optIndex, e.target.value)}
+                            placeholder={`Option ${letter}`}
+                            className="flex-1 p-1 text-sm font-sans bg-transparent text-graphite border-b border-pencil-line/40 focus:border-ink-navy focus:outline-none"
+                          />
+                        </div>
+                        {optionVal && (
+                          <div className="mt-1.5 pl-9 text-xs font-sans text-graphite">
+                            <span className="text-[10px] font-mono text-graphite-soft mr-1">Preview:</span>
+                            <MathText text={optionVal} />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -318,13 +336,21 @@ export const QuestionReview: React.FC<QuestionReviewProps> = ({
                 <label className="block text-[11px] font-mono text-graphite-soft mb-1">
                   Solution Explanation
                 </label>
-                <input
-                  type="text"
+                <textarea
                   value={q.explanation || ''}
                   onChange={(e) => handleUpdateMeta(qIndex, 'explanation', e.target.value)}
+                  rows={2}
                   placeholder="Step-by-step reasoning..."
-                  className="w-full p-2 rounded border border-pencil-line bg-sheet text-xs font-sans text-graphite"
+                  className="w-full p-2 rounded border border-pencil-line bg-sheet text-xs font-sans text-graphite focus:outline-none focus:ring-1 focus:ring-ink-navy"
                 />
+                {q.explanation && (
+                  <div className="mt-2 p-2.5 rounded border border-pencil-line/60 bg-sheet text-xs font-sans text-graphite">
+                    <span className="block text-[10px] font-mono text-graphite-soft uppercase mb-1 font-semibold">
+                      Live Explanation Preview:
+                    </span>
+                    <MathText text={q.explanation} />
+                  </div>
+                )}
               </div>
             </div>
           );

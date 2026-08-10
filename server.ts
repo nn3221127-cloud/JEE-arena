@@ -459,24 +459,26 @@ app.post('/api/tests/:id/archive', authMiddleware, (req: any, res) => {
 });
 
 // --- MULTI-LLM QUESTION EXTRACTION (Gemini 2.5 Flash Primary) ---
-app.post('/api/extract', authMiddleware, upload.single('file'), async (req: any, res) => {
+app.post('/api/extract', authMiddleware, upload.any(), async (req: any, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required.' });
   }
 
   try {
     let rawText = req.body.raw_text || '';
-    let imagePart = null;
+    const imageParts: any[] = [];
 
-    if (req.file) {
-      const mimeType = req.file.mimetype;
-      const base64Data = req.file.buffer.toString('base64');
-      imagePart = {
-        inlineData: {
-          data: base64Data,
-          mimeType
-        }
-      };
+    // Support single 'file', multiple 'files', or any uploaded file buffers (images or multi-page PDFs)
+    const filesList = req.files || (req.file ? [req.file] : []);
+    for (const file of filesList) {
+      if (file && file.buffer) {
+        imageParts.push({
+          inlineData: {
+            data: file.buffer.toString('base64'),
+            mimeType: file.mimetype
+          }
+        });
+      }
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
@@ -489,22 +491,29 @@ app.post('/api/extract', authMiddleware, upload.single('file'), async (req: any,
       httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
     });
 
-    const promptText = `You are a top-tier JEE entrance examination paper analyzer.
-Extract multiple-choice questions from the provided document/image/text.
-Return a structured JSON array containing 5-15 extracted questions.
-For each question:
-- question_text: clear statement of the problem
-- options: array of exactly 4 strings [Option A, Option B, Option C, Option D]
-- correct_option_index: integer index 0, 1, 2, or 3 representing the correct option
-- explanation: clear step-by-step mathematical/scientific reasoning for the solution
-- subject: 'Physics' | 'Chemistry' | 'Mathematics'
-- topic: specific sub-topic (e.g. 'Electrochemistry', 'Organic Chemistry', 'Calculus')
-- difficulty: 'easy' | 'medium' | 'hard'
-- confidence: integer confidence rating 0 to 100 based on text clarity`;
+    const promptText = `You are an elite JEE entrance examination paper extractor and LaTeX typesetter.
+Extract all multiple-choice questions from the provided documents, image batch, multi-page PDF files, or raw text context. Return ONE merged, de-duplicated list of questions.
 
-    const contents = imagePart
-      ? { parts: [imagePart, { text: promptText + (rawText ? `\n\nRaw text context: ${rawText}` : '') }] }
-      : { parts: [{ text: `${promptText}\n\nContent to parse:\n${rawText || 'Extract sample JEE practice questions.'}` }] };
+STRICT FORMATTING & LATEX INSTRUCTIONS:
+1. MATHEMATICAL & SCIENTIFIC NOTATION:
+   - Output every fraction, exponent, root, integral, matrix, derivative, or chemical formula in LaTeX: $...$ for inline math, $$...$$ for standalone display equations.
+   - ABSOLUTELY NO UNICODE SUPERSCRIPTS OR SUBSCRIPTS (e.g. NEVER output ⁻³, ₁, ₂, ½, ³, ⁴, ⁺, t₁/₂). Convert every single one into proper LaTeX e.g. x^{-3}, t_{1/2}, \\text{H}_2\\text{O}, \\frac{1}{2}.
+   - For fractions use \\frac{a}{b}, for square roots use \\sqrt{x}, for integrals use \\int.
+
+2. MULTI-FILE / MULTI-PAGE DE-DUPLICATION:
+   - Process all provided file attachments and pages together.
+   - Merge questions into a single clean list and eliminate any duplicate questions across pages/files.
+
+3. DIAGRAMS & FIGURES:
+   - If a question has an accompanying diagram, graph, circuit, or figure, mark has_diagram: true and provide a concise diagram_description.
+   - Never replace a diagram with a text description in the question_text — keep the question statement intact and flag the visual diagram so it can be rendered.`;
+
+    const promptParts = [
+      ...imageParts,
+      { text: promptText + (rawText ? `\n\nRaw text context to process:\n${rawText}` : '') }
+    ];
+
+    const contents = { parts: promptParts };
 
     const geminiRes = await ai.models.generateContent({
       model: 'gemini-3.6-flash',
@@ -523,7 +532,9 @@ For each question:
               subject: { type: Type.STRING },
               topic: { type: Type.STRING },
               difficulty: { type: Type.STRING },
-              confidence: { type: Type.INTEGER }
+              confidence: { type: Type.INTEGER },
+              has_diagram: { type: Type.BOOLEAN },
+              diagram_description: { type: Type.STRING }
             },
             required: ['question_text', 'options', 'correct_option_index', 'subject', 'topic']
           }
@@ -547,7 +558,8 @@ For each question:
       topic: q.topic || 'General Physics',
       difficulty: ['easy', 'medium', 'hard'].includes(q.difficulty) ? q.difficulty : 'medium',
       confidence: typeof q.confidence === 'number' ? q.confidence : 92,
-      extraction_source: 'Gemini 2.5 Flash Primary'
+      extraction_source: imageParts.length > 1 ? `Gemini 2.5 Flash (${imageParts.length} files)` : 'Gemini 2.5 Flash Primary',
+      image_url: q.has_diagram && q.diagram_description ? `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="120" viewBox="0 0 300 120"><rect width="100%" height="100%" fill="%23F5F4EF" stroke="%23D8D6CC" stroke-width="2" rx="4"/><text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%231F2A44" font-weight="bold">Diagram / Figure Reference</text><text x="50%" y="70%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="10" fill="%236B6E76">${encodeURIComponent(q.diagram_description)}</text></svg>` : undefined
     }));
 
     res.json({ questions: parsedQuestions });
@@ -603,12 +615,18 @@ app.post('/api/attempts/start', authMiddleware, (req: any, res) => {
   db.attempts.push(newAttempt);
   saveDB(db);
 
+  // SECURITY FIX: Strip answer key (correct_option_index and explanation) before sending to student
+  const sanitizedQuestions = test.questions.map((q: any) => {
+    const { correct_option_index, explanation, ...rest } = q;
+    return rest;
+  });
+
   res.json({
     attempt_id,
     test_id: test.id,
     test_title: test.title,
     estimated_time_minutes: test.estimated_time_minutes || 15,
-    questions: test.questions,
+    questions: sanitizedQuestions,
     start_time: newAttempt.start_time
   });
 });
@@ -616,10 +634,31 @@ app.post('/api/attempts/start', authMiddleware, (req: any, res) => {
 // Answer Single Question
 app.post('/api/attempts/answer', authMiddleware, (req: any, res) => {
   const { attempt_id, question_id, selected_index } = req.body;
+
+  // Handle preview mode dynamically without requiring saved attempt session
+  if (attempt_id && attempt_id.startsWith('preview_')) {
+    const db = loadDB();
+    for (const t of db.tests || []) {
+      const q = t.questions?.find((quest: any) => quest.id === question_id);
+      if (q) {
+        return res.json({
+          is_correct: selected_index === q.correct_option_index,
+          correct_option_index: q.correct_option_index,
+          explanation: q.explanation
+        });
+      }
+    }
+  }
+
   const db = loadDB();
   const attempt = db.attempts.find((a: any) => a.attempt_id === attempt_id);
   if (!attempt) {
     return res.status(404).json({ message: 'Attempt session not found.' });
+  }
+
+  // SECURITY FIX: Ownership check
+  if (attempt.user_id !== req.user.user_id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
   }
 
   const test = db.tests.find((t: any) => t.id === attempt.test_id);
@@ -652,6 +691,11 @@ app.post('/api/attempts/finish', authMiddleware, (req: any, res) => {
   const attempt = db.attempts.find((a: any) => a.attempt_id === attempt_id);
   if (!attempt) {
     return res.status(404).json({ message: 'Attempt not found.' });
+  }
+
+  // SECURITY FIX: Ownership check
+  if (attempt.user_id !== req.user.user_id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
   }
 
   const test = db.tests.find((t: any) => t.id === attempt.test_id);
@@ -798,6 +842,11 @@ app.get('/api/attempts/:id/results', authMiddleware, (req: any, res) => {
   const attempt = db.attempts.find((a: any) => a.attempt_id === req.params.id);
   if (!attempt) {
     return res.status(404).json({ message: 'Results not found.' });
+  }
+
+  // SECURITY FIX: Ownership check
+  if (attempt.user_id !== req.user.user_id && req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
   }
 
   const test = db.tests.find((t: any) => t.id === attempt.test_id);

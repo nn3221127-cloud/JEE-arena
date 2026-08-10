@@ -3,7 +3,7 @@ import { InkMark } from './InkMark';
 
 export interface OMROptionState {
   letter: string; // 'A', 'B', 'C', 'D'
-  text: string;
+  text: React.ReactNode | string;
   isSelected: boolean;
   isCorrect?: boolean;
   isRevealed: boolean;

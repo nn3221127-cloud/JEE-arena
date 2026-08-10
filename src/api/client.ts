@@ -20,6 +20,7 @@ export interface QuestionDraft {
   difficulty: 'easy' | 'medium' | 'hard';
   confidence: number; // 0-100
   extraction_source?: string;
+  image_url?: string;
 }
 
 export interface TestSummary {
@@ -36,6 +37,12 @@ export interface TestSummary {
   has_attempted?: boolean;
 }
 
+export interface AnswerResult {
+  is_correct: boolean;
+  correct_option_index: number;
+  explanation?: string;
+}
+
 export interface AttemptSession {
   attempt_id: string;
   test_id: string;
@@ -45,8 +52,6 @@ export interface AttemptSession {
     id: string;
     question_text: string;
     options: string[];
-    correct_option_index: number;
-    explanation?: string;
     subject: string;
     topic: string;
     image_url?: string;
@@ -249,11 +254,7 @@ class ApiClient {
     });
   }
 
-  async submitAnswer(attempt_id: string, question_id: string, selected_index: number): Promise<{
-    is_correct: boolean;
-    correct_option_index: number;
-    explanation?: string;
-  }> {
+  async submitAnswer(attempt_id: string, question_id: string, selected_index: number): Promise<AnswerResult> {
     return this.request('/attempts/answer', {
       method: 'POST',
       body: JSON.stringify({ attempt_id, question_id, selected_index })

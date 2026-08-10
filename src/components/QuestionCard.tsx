@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
+import { Atom, FlaskConical, Calculator } from 'lucide-react';
 import { RegistrationCorners } from './RegistrationCorners';
 import { OMRBubble } from './OMRBubble';
 import { InkMark } from './InkMark';
+import { MathText } from './MathText';
 
 export interface QuestionData {
   id: string;
   question_text: string;
   options: string[]; // 4 options
-  correct_option_index: number; // 0, 1, 2, 3
+  correct_option_index?: number; // 0, 1, 2, 3 (optional until reveal)
   explanation?: string;
   subject: string; // 'Physics', 'Chemistry', 'Mathematics'
   topic: string;
@@ -18,13 +20,43 @@ interface QuestionCardProps {
   question: QuestionData;
   questionNumber: number;
   totalQuestions: number;
-  onAnswerSubmit: (questionId: string, selectedIndex: number) => void;
+  onAnswerSubmit: (questionId: string, selectedIndex: number) => Promise<{
+    is_correct: boolean;
+    correct_option_index: number;
+    explanation?: string;
+  } | void> | void;
   disabled?: boolean;
 }
 
+export const QuestionCardSkeleton: React.FC = () => {
+  return (
+    <div className="relative bg-sheet rounded-xl border border-pencil-line p-8 shadow-sm max-w-[720px] mx-auto w-full animate-pulse">
+      <RegistrationCorners />
+      <div className="flex items-center justify-between gap-4 mb-6 pb-3 border-b border-pencil-line">
+        <div className="h-6 w-40 bg-sheet-2 rounded border border-pencil-line/50" />
+        <div className="h-4 w-28 bg-sheet-2 rounded" />
+      </div>
+      <div className="space-y-3 mb-8">
+        <div className="h-5 bg-sheet-2 rounded w-full" />
+        <div className="h-5 bg-sheet-2 rounded w-4/5" />
+        <div className="h-5 bg-sheet-2 rounded w-3/4" />
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-16 bg-sheet-2 rounded-lg border border-pencil-line/50" />
+        ))}
+      </div>
+      <div className="flex justify-end pt-4 border-t border-pencil-line">
+        <div className="h-11 w-36 bg-sheet-2 rounded-lg" />
+      </div>
+    </div>
+  );
+};
+
 /**
  * QuestionCard Component:
- * The signature test-taking card featuring OMR bubble selection and instant hand-drawn ink feedback.
+ * The signature test-taking card featuring OMR bubble selection, MathText LaTeX typeset rendering,
+ * and instant hand-drawn ink feedback.
  */
 export const QuestionCard: React.FC<QuestionCardProps> = ({
   question,
@@ -36,28 +68,60 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const [isRevealed, setIsRevealed] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
+  const [revealedResult, setRevealedResult] = useState<{
+    is_correct: boolean;
+    correct_option_index: number;
+    explanation?: string;
+  } | null>(null);
 
   const letters = ['A', 'B', 'C', 'D'];
 
-  const handleSelectOption = (index: number) => {
+  const handleSelectOption = async (index: number) => {
     if (disabled || isRevealed) return;
     setSelectedIndex(index);
     setIsRevealed(true);
-    onAnswerSubmit(question.id, index);
+    const result = await onAnswerSubmit(question.id, index);
+    if (result) {
+      setRevealedResult(result);
+    }
   };
 
-  const isCorrectChoice = selectedIndex !== null && selectedIndex === question.correct_option_index;
+  const effectiveCorrectIndex = revealedResult?.correct_option_index;
+  const isCorrectChoice = revealedResult?.is_correct ?? false;
+  const explanationText = revealedResult?.explanation;
+
+  // Distinct subject color-coding and icons
+  const subjectStyles: Record<string, { chip: string; icon: React.ReactNode }> = {
+    Physics: {
+      chip: 'bg-ink-navy/10 border-ink-navy/30 text-ink-navy font-bold',
+      icon: <Atom size={14} className="text-ink-navy" />
+    },
+    Chemistry: {
+      chip: 'bg-exam-green-soft border-exam-green/40 text-exam-green font-bold',
+      icon: <FlaskConical size={14} className="text-exam-green" />
+    },
+    Mathematics: {
+      chip: 'bg-red-ink-soft border-red-ink/40 text-red-ink font-bold',
+      icon: <Calculator size={14} className="text-red-ink" />
+    }
+  };
+
+  const subjectConfig = subjectStyles[question.subject] || {
+    chip: 'bg-sheet-2 border-pencil-line text-graphite-soft font-semibold',
+    icon: <Atom size={14} className="text-graphite-soft" />
+  };
 
   return (
-    <div className="relative bg-sheet rounded-lg border border-pencil-line p-6 sm:p-8 shadow-md max-w-3xl mx-auto w-full transition-all">
+    <div className="relative bg-sheet rounded-xl border border-pencil-line p-6 sm:p-8 md:p-10 shadow-sm max-w-[720px] mx-auto w-full transition-all">
       <RegistrationCorners />
 
       {/* Meta Header */}
       <div className="flex items-center justify-between gap-4 mb-6 pb-3 border-b border-pencil-line">
-        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-sm bg-sheet-2 border border-pencil-line text-xs font-mono font-medium text-graphite-soft">
-          <span className="font-semibold text-graphite">{question.subject}</span>
+        <div className={`inline-flex items-center gap-2 px-2.5 py-1 rounded border text-xs font-mono ${subjectConfig.chip}`}>
+          {subjectConfig.icon}
+          <span>{question.subject}</span>
           <span>·</span>
-          <span>{question.topic}</span>
+          <span className="font-normal opacity-90">{question.topic}</span>
         </div>
 
         <div className="text-xs font-mono font-bold text-graphite-soft">
@@ -65,9 +129,9 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         </div>
       </div>
 
-      {/* Question Text */}
+      {/* Question Text with Typeset Math */}
       <div className="font-sans text-lg sm:text-xl font-medium text-graphite leading-relaxed mb-6">
-        {question.question_text}
+        <MathText text={question.question_text} />
       </div>
 
       {/* Embedded Diagram / Image if present */}
@@ -85,13 +149,13 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-6">
         {question.options.map((optionText, idx) => {
           const isThisSelected = selectedIndex === idx;
-          const isThisCorrect = idx === question.correct_option_index;
+          const isThisCorrect = effectiveCorrectIndex !== undefined && idx === effectiveCorrectIndex;
 
           return (
             <OMRBubble
               key={idx}
               letter={letters[idx]}
-              text={optionText}
+              text={<MathText text={optionText} />}
               isSelected={isThisSelected}
               isCorrect={isThisCorrect}
               isRevealed={isRevealed}
@@ -116,16 +180,19 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               <InkMark
                 type={isCorrectChoice ? 'tick' : 'cross'}
                 size={22}
+                animate={true}
                 className={isCorrectChoice ? 'text-exam-green' : 'text-red-ink'}
               />
               <span className="font-sans font-bold text-base">
                 {isCorrectChoice
                   ? 'Correct!'
-                  : `Incorrect — Correct answer is ${letters[question.correct_option_index]}`}
+                  : effectiveCorrectIndex !== undefined
+                  ? `Incorrect — Correct answer is ${letters[effectiveCorrectIndex]}`
+                  : 'Incorrect'}
               </span>
             </div>
 
-            {question.explanation && (
+            {explanationText && (
               <button
                 type="button"
                 onClick={() => setShowExplanation(!showExplanation)}
@@ -137,12 +204,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           </div>
 
           {/* Accordion Explanation */}
-          {showExplanation && question.explanation && (
+          {showExplanation && explanationText && (
             <div className="mt-3 pt-3 border-t border-pencil-line/50 text-sm font-sans text-graphite leading-relaxed">
               <span className="font-semibold block mb-1 font-mono text-xs uppercase text-graphite-soft">
                 Explanation:
               </span>
-              {question.explanation}
+              <MathText text={explanationText} />
             </div>
           )}
         </div>
