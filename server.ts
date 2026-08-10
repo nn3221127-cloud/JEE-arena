@@ -5,6 +5,11 @@ import { createServer as createViteServer } from 'vite';
 import bcrypt from 'bcryptjs';
 import multer from 'multer';
 import { GoogleGenAI, Type } from '@google/genai';
+import { initializeApp as initAdminApp, getApps as getAdminApps } from 'firebase-admin/app';
+import { getFirestore as getAdminFirestore } from 'firebase-admin/firestore';
+import { initializeApp as initClientApp } from 'firebase/app';
+import { getFirestore as getClientFirestore, doc, getDoc, setDoc } from 'firebase/firestore';
+import firebaseConfig from './firebase-applet-config.json';
 
 const app = express();
 const PORT = 3000;
@@ -15,13 +20,14 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 // Multer for upload handling
 const upload = multer({ limits: { fileSize: 20 * 1024 * 1024 } }); // 20MB limit
 
-// Database Path
-const DB_FILE = path.join(process.cwd(), 'data', 'db.json');
-
-// Helper to ensure data dir exists
-if (!fs.existsSync(path.dirname(DB_FILE))) {
-  fs.mkdirSync(path.dirname(DB_FILE), { recursive: true });
+// Firebase Firestore Setup (Supports Admin SDK in Cloud Run & Client SDK fallback in dev)
+if (!getAdminApps().length) {
+  initAdminApp({ projectId: firebaseConfig.projectId });
 }
+const adminDb = getAdminFirestore(firebaseConfig.firestoreDatabaseId);
+
+const clientApp = initClientApp(firebaseConfig);
+const clientDb = getClientFirestore(clientApp, firebaseConfig.firestoreDatabaseId);
 
 // Seed Users & Initial Schema
 const SEED_USERS = [
@@ -169,46 +175,69 @@ const SEED_TESTS = [
   }
 ];
 
-// Load DB
-function loadDB() {
-  if (!fs.existsSync(DB_FILE)) {
-    const initialDB = {
-      users: SEED_USERS,
-      tests: SEED_TESTS,
-      attempts: [],
-      sessions: {}
-    };
-    fs.writeFileSync(DB_FILE, JSON.stringify(initialDB, null, 2));
-    return initialDB;
-  }
+let inMemoryDB: any = null;
+
+// Load DB from Firestore
+async function loadDB() {
   try {
-    const content = fs.readFileSync(DB_FILE, 'utf-8');
-    return JSON.parse(content);
+    const snap = await adminDb.collection('app_data').doc('state').get();
+    if (snap.exists) {
+      inMemoryDB = snap.data();
+      return inMemoryDB;
+    }
   } catch (err) {
-    const fallbackDB = {
-      users: SEED_USERS,
-      tests: SEED_TESTS,
-      attempts: [],
-      sessions: {}
-    };
-    fs.writeFileSync(DB_FILE, JSON.stringify(fallbackDB, null, 2));
-    return fallbackDB;
+    // Fallback to Client SDK if Admin SDK lacks ADC credentials in dev container
   }
+
+  try {
+    const docRef = doc(clientDb, 'app_data', 'state');
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      inMemoryDB = snap.data();
+      return inMemoryDB;
+    }
+  } catch (err) {
+    console.error('Error loading DB from Firestore:', err);
+  }
+
+  if (inMemoryDB) return inMemoryDB;
+
+  const fallbackDB = {
+    users: SEED_USERS,
+    tests: SEED_TESTS,
+    attempts: [],
+    sessions: {}
+  };
+  inMemoryDB = fallbackDB;
+  return fallbackDB;
 }
 
-// Save DB
-function saveDB(data: any) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+// Save DB to Firestore
+async function saveDB(data: any) {
+  inMemoryDB = data;
+  try {
+    await adminDb.collection('app_data').doc('state').set(data);
+    return;
+  } catch (err) {
+    // Fallback to Client SDK
+  }
+
+  try {
+    const docRef = doc(clientDb, 'app_data', 'state');
+    await setDoc(docRef, data);
+  } catch (err) {
+    console.error('Error saving DB to Firestore:', err);
+  }
 }
 
 // Auth Middleware
-function authMiddleware(req: any, res: any, next: any) {
+async function authMiddleware(req: any, res: any, next: any) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Unauthorized session.' });
   }
   const token = authHeader.split(' ')[1];
-  const db = loadDB();
+  const db = await loadDB();
   const session = db.sessions?.[token];
   if (!session) {
     return res.status(401).json({ message: 'Session expired or invalid token.' });
@@ -224,13 +253,13 @@ function authMiddleware(req: any, res: any, next: any) {
 // --- API ROUTES ---
 
 // 1. Auth Login (PASSWORD ONLY match)
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { password } = req.body;
   if (!password) {
     return res.status(400).json({ message: 'Password is required.' });
   }
 
-  const db = loadDB();
+  const db = await loadDB();
   let matchedUser = null;
 
   for (const user of db.users) {
@@ -250,7 +279,7 @@ app.post('/api/auth/login', (req, res) => {
     user_id: matchedUser.user_id,
     created_at: new Date().toISOString()
   };
-  saveDB(db);
+  await saveDB(db);
 
   return res.json({
     user_id: matchedUser.user_id,
@@ -266,8 +295,8 @@ app.get('/api/auth/me', authMiddleware, (req: any, res) => {
 });
 
 // Admin / Platform Stats
-app.get('/api/admin/stats', authMiddleware, (req: any, res) => {
-  const db = loadDB();
+app.get('/api/admin/stats', authMiddleware, async (req: any, res) => {
+  const db = await loadDB();
   const total_tests = db.tests ? db.tests.length : 0;
 
   // Filter strictly for student members (excluding admins)
@@ -297,8 +326,8 @@ app.get('/api/admin/stats', authMiddleware, (req: any, res) => {
 });
 
 // List Tests
-app.get('/api/tests', authMiddleware, (req: any, res) => {
-  const db = loadDB();
+app.get('/api/tests', authMiddleware, async (req: any, res) => {
+  const db = await loadDB();
   let tests = db.tests || [];
 
   const studentMembers = db.users ? db.users.filter((u: any) => u.role === 'member') : [];
@@ -332,8 +361,8 @@ app.get('/api/tests', authMiddleware, (req: any, res) => {
 });
 
 // Get Single Test
-app.get('/api/tests/:id', authMiddleware, (req: any, res) => {
-  const db = loadDB();
+app.get('/api/tests/:id', authMiddleware, async (req: any, res) => {
+  const db = await loadDB();
   const test = db.tests.find((t: any) => t.id === req.params.id);
   if (!test) {
     return res.status(404).json({ message: 'Test paper not found.' });
@@ -342,11 +371,11 @@ app.get('/api/tests/:id', authMiddleware, (req: any, res) => {
 });
 
 // Admin Preview Mode Endpoint
-app.get('/api/tests/:id/preview', authMiddleware, (req: any, res) => {
+app.get('/api/tests/:id/preview', authMiddleware, async (req: any, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required for preview mode.' });
   }
-  const db = loadDB();
+  const db = await loadDB();
   const test = db.tests.find((t: any) => t.id === req.params.id);
   if (!test) {
     return res.status(404).json({ message: 'Test paper not found.' });
@@ -363,7 +392,7 @@ app.get('/api/tests/:id/preview', authMiddleware, (req: any, res) => {
 });
 
 // Create Test
-app.post('/api/tests', authMiddleware, (req: any, res) => {
+app.post('/api/tests', authMiddleware, async (req: any, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required.' });
   }
@@ -372,7 +401,7 @@ app.post('/api/tests', authMiddleware, (req: any, res) => {
     return res.status(400).json({ message: 'Title and questions list are required.' });
   }
 
-  const db = loadDB();
+  const db = await loadDB();
   const newTest = {
     id: `test_${Date.now()}`,
     title,
@@ -395,17 +424,17 @@ app.post('/api/tests', authMiddleware, (req: any, res) => {
   };
 
   db.tests.unshift(newTest);
-  saveDB(db);
+  await saveDB(db);
 
   res.json(newTest);
 });
 
 // Activate Test for Enrolled Students
-app.post('/api/tests/:id/activate', authMiddleware, (req: any, res) => {
+app.post('/api/tests/:id/activate', authMiddleware, async (req: any, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required.' });
   }
-  const db = loadDB();
+  const db = await loadDB();
   const test = db.tests.find((t: any) => t.id === req.params.id);
   if (!test) {
     return res.status(404).json({ message: 'Test not found.' });
@@ -413,31 +442,31 @@ app.post('/api/tests/:id/activate', authMiddleware, (req: any, res) => {
   test.status = 'published';
   const studentMembers = db.users.filter((u: any) => u.role === 'member');
   test.active_student_count = studentMembers.length;
-  saveDB(db);
+  await saveDB(db);
   res.json({ ...test, active_student_count: studentMembers.length });
 });
 
 // Deactivate Test
-app.post('/api/tests/:id/deactivate', authMiddleware, (req: any, res) => {
+app.post('/api/tests/:id/deactivate', authMiddleware, async (req: any, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required.' });
   }
-  const db = loadDB();
+  const db = await loadDB();
   const test = db.tests.find((t: any) => t.id === req.params.id);
   if (!test) {
     return res.status(404).json({ message: 'Test not found.' });
   }
   test.status = 'draft';
-  saveDB(db);
+  await saveDB(db);
   res.json(test);
 });
 
 // Publish Test (Alias for Activate)
-app.post('/api/tests/:id/publish', authMiddleware, (req: any, res) => {
+app.post('/api/tests/:id/publish', authMiddleware, async (req: any, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required.' });
   }
-  const db = loadDB();
+  const db = await loadDB();
   const test = db.tests.find((t: any) => t.id === req.params.id);
   if (!test) {
     return res.status(404).json({ message: 'Test not found.' });
@@ -445,22 +474,22 @@ app.post('/api/tests/:id/publish', authMiddleware, (req: any, res) => {
   test.status = 'published';
   const studentMembers = db.users.filter((u: any) => u.role === 'member');
   test.active_student_count = studentMembers.length;
-  saveDB(db);
+  await saveDB(db);
   res.json({ ...test, active_student_count: studentMembers.length });
 });
 
 // Archive Test
-app.post('/api/tests/:id/archive', authMiddleware, (req: any, res) => {
+app.post('/api/tests/:id/archive', authMiddleware, async (req: any, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ message: 'Admin access required.' });
   }
-  const db = loadDB();
+  const db = await loadDB();
   const test = db.tests.find((t: any) => t.id === req.params.id);
   if (!test) {
     return res.status(404).json({ message: 'Test not found.' });
   }
   test.status = 'archived';
-  saveDB(db);
+  await saveDB(db);
   res.json(test);
 });
 
@@ -601,7 +630,7 @@ STRICT FORMATTING & LATEX INSTRUCTIONS:
 // --- TEST TAKING & ATTEMPTS ---
 
 // Start Attempt
-app.post('/api/attempts/start', authMiddleware, (req: any, res) => {
+app.post('/api/attempts/start', authMiddleware, async (req: any, res) => {
   if (req.user.role === 'admin') {
     return res.status(403).json({
       message: 'Admins cannot initiate student attempt sessions. Use Admin Preview mode to inspect test papers.'
@@ -609,7 +638,7 @@ app.post('/api/attempts/start', authMiddleware, (req: any, res) => {
   }
 
   const { test_id } = req.body;
-  const db = loadDB();
+  const db = await loadDB();
   const test = db.tests.find((t: any) => t.id === test_id);
   if (!test) {
     return res.status(404).json({ message: 'Test not found.' });
@@ -632,7 +661,7 @@ app.post('/api/attempts/start', authMiddleware, (req: any, res) => {
 
   if (!db.attempts) db.attempts = [];
   db.attempts.push(newAttempt);
-  saveDB(db);
+  await saveDB(db);
 
   // SECURITY FIX: Strip answer key (correct_option_index, option_rationales, explanation) before sending to student
   const sanitizedQuestions = test.questions.map((q: any) => {
@@ -651,12 +680,12 @@ app.post('/api/attempts/start', authMiddleware, (req: any, res) => {
 });
 
 // Answer Single Question
-app.post('/api/attempts/answer', authMiddleware, (req: any, res) => {
+app.post('/api/attempts/answer', authMiddleware, async (req: any, res) => {
   const { attempt_id, question_id, selected_index } = req.body;
 
   // Handle preview mode dynamically without requiring saved attempt session
   if (attempt_id && attempt_id.startsWith('preview_')) {
-    const db = loadDB();
+    const db = await loadDB();
     for (const t of db.tests || []) {
       const q = t.questions?.find((quest: any) => quest.id === question_id);
       if (q) {
@@ -673,7 +702,7 @@ app.post('/api/attempts/answer', authMiddleware, (req: any, res) => {
     }
   }
 
-  const db = loadDB();
+  const db = await loadDB();
   const attempt = db.attempts.find((a: any) => a.attempt_id === attempt_id);
   if (!attempt) {
     return res.status(404).json({ message: 'Attempt session not found.' });
@@ -698,7 +727,7 @@ app.post('/api/attempts/answer', authMiddleware, (req: any, res) => {
     answered_at: new Date().toISOString()
   };
 
-  saveDB(db);
+  await saveDB(db);
 
   const defaultRationales = (question.options || []).map((_: string, idx: number) =>
     idx === question.correct_option_index ? 'Correct worked solution.' : 'Incorrect option.'
@@ -713,9 +742,9 @@ app.post('/api/attempts/answer', authMiddleware, (req: any, res) => {
 });
 
 // Finish Attempt & Compute Final Results
-app.post('/api/attempts/finish', authMiddleware, (req: any, res) => {
+app.post('/api/attempts/finish', authMiddleware, async (req: any, res) => {
   const { attempt_id } = req.body;
-  const db = loadDB();
+  const db = await loadDB();
   const attempt = db.attempts.find((a: any) => a.attempt_id === attempt_id);
   if (!attempt) {
     return res.status(404).json({ message: 'Attempt not found.' });
@@ -847,7 +876,7 @@ app.post('/api/attempts/finish', authMiddleware, (req: any, res) => {
       is_current_user: item.user_id === req.user.user_id
     }));
 
-  saveDB(db);
+  await saveDB(db);
 
   const resultsSummary = {
     attempt_id,
@@ -867,8 +896,8 @@ app.post('/api/attempts/finish', authMiddleware, (req: any, res) => {
 });
 
 // Get Results
-app.get('/api/attempts/:id/results', authMiddleware, (req: any, res) => {
-  const db = loadDB();
+app.get('/api/attempts/:id/results', authMiddleware, async (req: any, res) => {
+  const db = await loadDB();
   const attempt = db.attempts.find((a: any) => a.attempt_id === req.params.id);
   if (!attempt) {
     return res.status(404).json({ message: 'Results not found.' });
@@ -1021,8 +1050,8 @@ function calculateUserStreak(userAttempts: any[]): number {
 }
 
 // Leaderboard (Students ONLY)
-app.get('/api/leaderboard', authMiddleware, (req: any, res) => {
-  const db = loadDB();
+app.get('/api/leaderboard', authMiddleware, async (req: any, res) => {
+  const db = await loadDB();
   const studentUsers = (db.users || []).filter((u: any) => u.role === 'member');
 
   const leaderboard = studentUsers.map((u: any) => {
@@ -1063,8 +1092,8 @@ app.get('/api/leaderboard', authMiddleware, (req: any, res) => {
 });
 
 // Member Weak Topics
-app.get('/api/members/weak-topics', authMiddleware, (req: any, res) => {
-  const db = loadDB();
+app.get('/api/members/weak-topics', authMiddleware, async (req: any, res) => {
+  const db = await loadDB();
   const userAttempts = db.attempts.filter((a: any) => a.user_id === req.user.user_id && a.finished_at);
 
   if (userAttempts.length === 0) {
@@ -1097,8 +1126,8 @@ app.get('/api/members/weak-topics', authMiddleware, (req: any, res) => {
 });
 
 // Retake Weak Questions (Generate fresh test from actual user wrong answers)
-app.post('/api/members/retake-test', authMiddleware, (req: any, res) => {
-  const db = loadDB();
+app.post('/api/members/retake-test', authMiddleware, async (req: any, res) => {
+  const db = await loadDB();
   const userAttempts = db.attempts.filter((a: any) => a.user_id === req.user.user_id && a.finished_at);
 
   const wrongQuestionMap = new Map<string, any>();
@@ -1138,14 +1167,14 @@ app.post('/api/members/retake-test', authMiddleware, (req: any, res) => {
   };
 
   db.tests.unshift(retakeTest);
-  saveDB(db);
+  await saveDB(db);
 
   res.json(retakeTest);
 });
 
 // Member Past Attempts
-app.get('/api/members/attempts', authMiddleware, (req: any, res) => {
-  const db = loadDB();
+app.get('/api/members/attempts', authMiddleware, async (req: any, res) => {
+  const db = await loadDB();
   const userAttempts = db.attempts
     .filter((a: any) => a.user_id === req.user.user_id && a.finished_at)
     .map((a: any) => ({
