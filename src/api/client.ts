@@ -14,6 +14,8 @@ export interface QuestionDraft {
   question_text: string;
   options: string[];
   correct_option_index: number;
+  option_rationales?: string[];
+  hint?: string;
   explanation?: string;
   subject: string;
   topic: string;
@@ -40,6 +42,7 @@ export interface TestSummary {
 export interface AnswerResult {
   is_correct: boolean;
   correct_option_index: number;
+  option_rationales?: string[];
   explanation?: string;
 }
 
@@ -54,6 +57,7 @@ export interface AttemptSession {
     options: string[];
     subject: string;
     topic: string;
+    hint?: string;
     image_url?: string;
   }>;
   start_time: string;
@@ -76,6 +80,8 @@ export interface ResultsSummary {
     user_selected_index: number;
     correct_option_index: number;
     is_correct: boolean;
+    option_rationales?: string[];
+    hint?: string;
     explanation?: string;
     subject: string;
     topic: string;
@@ -255,10 +261,19 @@ class ApiClient {
   }
 
   async submitAnswer(attempt_id: string, question_id: string, selected_index: number): Promise<AnswerResult> {
-    return this.request('/attempts/answer', {
-      method: 'POST',
-      body: JSON.stringify({ attempt_id, question_id, selected_index })
-    });
+    try {
+      return await this.request('/attempts/answer', {
+        method: 'POST',
+        body: JSON.stringify({ attempt_id, question_id, selected_index })
+      });
+    } catch (err) {
+      console.warn('submitAnswer failed, executing 1 automatic retry...', err);
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      return await this.request('/attempts/answer', {
+        method: 'POST',
+        body: JSON.stringify({ attempt_id, question_id, selected_index })
+      });
+    }
   }
 
   async finishAttempt(attempt_id: string): Promise<ResultsSummary> {

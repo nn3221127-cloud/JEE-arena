@@ -76,6 +76,20 @@ export const QuestionReview: React.FC<QuestionReviewProps> = ({
     setQuestions(updated);
   };
 
+  const handleUpdateRationale = (qIndex: number, optIndex: number, text: string) => {
+    const updated = [...questions];
+    const rationales = [...(updated[qIndex].option_rationales || ['', '', '', ''])];
+    rationales[optIndex] = text;
+    updated[qIndex].option_rationales = rationales;
+    setQuestions(updated);
+  };
+
+  const handleUpdateHint = (qIndex: number, text: string) => {
+    const updated = [...questions];
+    updated[qIndex].hint = text;
+    setQuestions(updated);
+  };
+
   const handleDeleteQuestion = (index: number) => {
     if (questions.length <= 1) return;
     setQuestions(questions.filter((_, i) => i !== index));
@@ -88,7 +102,8 @@ export const QuestionReview: React.FC<QuestionReviewProps> = ({
         question_text: '',
         options: ['', '', '', ''],
         correct_option_index: 0,
-        explanation: '',
+        option_rationales: ['', '', '', ''],
+        hint: '',
         subject: 'Physics',
         topic: 'General',
         difficulty: 'medium',
@@ -331,26 +346,62 @@ export const QuestionReview: React.FC<QuestionReviewProps> = ({
                 </div>
               </div>
 
-              {/* Explanation Text */}
-              <div>
-                <label className="block text-[11px] font-mono text-graphite-soft mb-1">
-                  Solution Explanation
+              {/* Hint Field */}
+              <div className="pt-2 border-t border-pencil-line/50">
+                <label className="block text-xs font-mono font-semibold uppercase text-graphite-soft mb-1">
+                  Question Hint (Nudge toward method)
                 </label>
                 <textarea
-                  value={q.explanation || ''}
-                  onChange={(e) => handleUpdateMeta(qIndex, 'explanation', e.target.value)}
+                  value={q.hint || ''}
+                  onChange={(e) => handleUpdateHint(qIndex, e.target.value)}
                   rows={2}
-                  placeholder="Step-by-step reasoning..."
-                  className="w-full p-2 rounded border border-pencil-line bg-sheet text-xs font-sans text-graphite focus:outline-none focus:ring-1 focus:ring-ink-navy"
+                  placeholder="e.g. Consider critical points at x = 0 and x = -1..."
+                  className="w-full p-2.5 rounded border border-pencil-line bg-sheet text-xs font-sans text-graphite focus:outline-none focus:ring-1 focus:ring-ink-navy"
                 />
-                {q.explanation && (
-                  <div className="mt-2 p-2.5 rounded border border-pencil-line/60 bg-sheet text-xs font-sans text-graphite">
-                    <span className="block text-[10px] font-mono text-graphite-soft uppercase mb-1 font-semibold">
-                      Live Explanation Preview:
+                {q.hint && (
+                  <div className="mt-1.5 p-2 rounded border border-pencil-line/60 bg-sheet text-xs font-sans text-graphite">
+                    <span className="block text-[10px] font-mono text-graphite-soft uppercase mb-0.5 font-semibold">
+                      Hint Live Preview:
                     </span>
-                    <MathText text={q.explanation} />
+                    <MathText text={q.hint} />
                   </div>
                 )}
+              </div>
+
+              {/* Per-Option Rationales */}
+              <div className="pt-2 border-t border-pencil-line/50 space-y-3">
+                <label className="block text-xs font-mono font-semibold uppercase text-graphite-soft">
+                  Per-Option Rationales (4 Explanations)
+                </label>
+                {['A', 'B', 'C', 'D'].map((letter, optIdx) => {
+                  const currentRationale = q.option_rationales?.[optIdx] || '';
+                  const isCorrectOpt = q.correct_option_index === optIdx;
+
+                  return (
+                    <div key={optIdx} className="p-3 rounded border border-pencil-line bg-sheet-2/50 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-mono font-bold text-graphite">
+                          Option {letter} Rationale {isCorrectOpt && <span className="text-exam-green ml-1 font-semibold">(Correct Solution)</span>}
+                        </span>
+                      </div>
+                      <textarea
+                        value={currentRationale}
+                        onChange={(e) => handleUpdateRationale(qIndex, optIdx, e.target.value)}
+                        rows={2}
+                        placeholder={isCorrectOpt ? "Full worked solution for the correct answer..." : `Why Option ${letter} is incorrect or tempting...`}
+                        className="w-full p-2 rounded border border-pencil-line bg-sheet text-xs font-sans text-graphite focus:outline-none focus:ring-1 focus:ring-ink-navy"
+                      />
+                      {currentRationale && (
+                        <div className="p-2 rounded border border-pencil-line/60 bg-sheet text-xs font-sans text-graphite">
+                          <span className="block text-[10px] font-mono text-graphite-soft uppercase mb-0.5 font-semibold">
+                            Option {letter} Rationale Preview:
+                          </span>
+                          <MathText text={currentRationale} />
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           );

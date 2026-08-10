@@ -4,6 +4,7 @@ import { ScoreCircle } from '../components/ScoreCircle';
 import { RegistrationCorners } from '../components/RegistrationCorners';
 import { DigitBox } from '../components/DigitBox';
 import { InkMark } from '../components/InkMark';
+import { MathText } from '../components/MathText';
 import { Trophy, BarChart2, CheckCircle2, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 
 interface ResultsProps {
@@ -12,7 +13,8 @@ interface ResultsProps {
 }
 
 /**
- * Screen 4.6: Results Screen (Signature Hero + 3 Tabs)
+ * Screen 4.6: Results Screen
+ * Extended with .quiz-dark theme consistency, MathText rendering, and per-option rationale review.
  */
 export const Results: React.FC<ResultsProps> = ({ attemptId, onNavigate }) => {
   const [results, setResults] = useState<ResultsSummary | null>(null);
@@ -41,7 +43,7 @@ export const Results: React.FC<ResultsProps> = ({ attemptId, onNavigate }) => {
 
   if (isLoading || !results) {
     return (
-      <div className="py-24 text-center font-mono text-sm text-graphite-soft">
+      <div className="py-24 text-center font-mono text-sm text-gray-400">
         Evaluating graded answer booklet...
       </div>
     );
@@ -50,23 +52,23 @@ export const Results: React.FC<ResultsProps> = ({ attemptId, onNavigate }) => {
   const letters = ['A', 'B', 'C', 'D'];
 
   return (
-    <div className="space-y-8 font-sans">
-      {/* Hero Section — Signature Red-Ink Circle Score Reveal */}
-      <div className="relative bg-sheet rounded-xl border border-pencil-line p-6 sm:p-10 shadow-md text-center overflow-hidden">
-        <div className="absolute inset-0 bg-registration-dots pointer-events-none" />
+    <div className="quiz-dark space-y-8 font-sans text-gray-100 max-w-4xl mx-auto">
+      {/* Hero Section — Red-Ink Circle Score Reveal */}
+      <div className="relative bg-[var(--quiz-card-bg,#191C23)] rounded-2xl border border-[var(--quiz-card-border,#2D3139)] p-6 sm:p-10 shadow-lg text-center overflow-hidden">
+        <div className="absolute inset-0 bg-registration-dots opacity-10 pointer-events-none" />
         <RegistrationCorners />
 
-        <div className="relative z-10 max-w-md mx-auto space-y-2">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sheet-2 border border-pencil-line text-xs font-mono font-semibold text-graphite-soft">
-            <CheckCircle2 size={14} className="text-exam-green" />
+        <div className="relative z-10 max-w-md mx-auto space-y-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#21242B] border border-[#2D3139] text-xs font-mono font-semibold text-[var(--quiz-correct-label,#6BD586)]">
+            <CheckCircle2 size={14} className="text-[var(--quiz-correct-label,#6BD586)]" />
             <span>TEST GRADED & VERIFIED</span>
           </div>
 
-          <h1 className="text-xl sm:text-2xl font-bold text-graphite">
+          <h1 className="text-xl sm:text-2xl font-bold text-white">
             {results.test_title}
           </h1>
 
-          {/* Signature Moment 2: Red Ink Score Circle */}
+          {/* Score Circle */}
           <ScoreCircle
             score={results.score}
             total={results.total_questions}
@@ -78,23 +80,23 @@ export const Results: React.FC<ResultsProps> = ({ attemptId, onNavigate }) => {
             <button
               type="button"
               onClick={() => onNavigate('home')}
-              className="px-6 py-2 rounded-full bg-ink-navy text-white text-xs font-mono font-semibold hover:bg-ink-navy/90 shadow transition-colors cursor-pointer"
+              className="px-6 py-2.5 rounded-full bg-[#4158FE] hover:bg-[#3448E0] text-white text-xs font-mono font-semibold shadow-md transition-colors cursor-pointer"
             >
-              Return to Arena Dashboard
+              Return to Dashboard
             </button>
           </div>
         </div>
       </div>
 
       {/* Tabs Row */}
-      <div className="border-b border-pencil-line flex items-center justify-center gap-6 text-sm font-sans font-semibold">
+      <div className="border-b border-[#2D3139] flex items-center justify-center gap-6 text-sm font-sans font-semibold">
         <button
           type="button"
           onClick={() => setActiveTab('overview')}
           className={`py-3 px-2 border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
             activeTab === 'overview'
-              ? 'border-ink-navy text-ink-navy font-bold'
-              : 'border-transparent text-graphite-soft hover:text-graphite'
+              ? 'border-[#4158FE] text-[#6B80FF] font-bold'
+              : 'border-transparent text-gray-400 hover:text-gray-200'
           }`}
         >
           <BarChart2 size={16} />
@@ -106,8 +108,8 @@ export const Results: React.FC<ResultsProps> = ({ attemptId, onNavigate }) => {
           onClick={() => setActiveTab('review')}
           className={`py-3 px-2 border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
             activeTab === 'review'
-              ? 'border-ink-navy text-ink-navy font-bold'
-              : 'border-transparent text-graphite-soft hover:text-graphite'
+              ? 'border-[#4158FE] text-[#6B80FF] font-bold'
+              : 'border-transparent text-gray-400 hover:text-gray-200'
           }`}
         >
           <CheckCircle2 size={16} />
@@ -119,8 +121,8 @@ export const Results: React.FC<ResultsProps> = ({ attemptId, onNavigate }) => {
           onClick={() => setActiveTab('compare')}
           className={`py-3 px-2 border-b-2 transition-colors cursor-pointer flex items-center gap-2 ${
             activeTab === 'compare'
-              ? 'border-ink-navy text-ink-navy font-bold'
-              : 'border-transparent text-graphite-soft hover:text-graphite'
+              ? 'border-[#4158FE] text-[#6B80FF] font-bold'
+              : 'border-transparent text-gray-400 hover:text-gray-200'
           }`}
         >
           <Trophy size={16} />
@@ -132,8 +134,8 @@ export const Results: React.FC<ResultsProps> = ({ attemptId, onNavigate }) => {
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {/* Subject Wise Accuracy Bars */}
-          <div className="bg-sheet rounded-lg border border-pencil-line p-6 shadow-sm space-y-4">
-            <h2 className="text-base font-bold font-sans text-graphite">
+          <div className="bg-[var(--quiz-card-bg,#191C23)] rounded-2xl border border-[var(--quiz-card-border,#2D3139)] p-6 shadow-md space-y-4">
+            <h2 className="text-base font-bold font-sans text-white">
               Subject-wise Performance
             </h2>
 
@@ -141,14 +143,14 @@ export const Results: React.FC<ResultsProps> = ({ attemptId, onNavigate }) => {
               {results.subject_breakdown.map((sub) => (
                 <div key={sub.subject} className="space-y-1.5">
                   <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="font-semibold text-graphite">{sub.subject}</span>
-                    <span className="text-graphite-soft">
+                    <span className="font-semibold text-gray-200">{sub.subject}</span>
+                    <span className="text-gray-400">
                       {sub.correct} / {sub.total} Correct ({sub.accuracy}%)
                     </span>
                   </div>
-                  <div className="w-full bg-pencil-line/40 h-2.5 rounded-full overflow-hidden">
+                  <div className="w-full bg-[#21242B] h-2.5 rounded-full overflow-hidden border border-[#2D3139]">
                     <div
-                      className="bg-ink-navy h-full transition-all duration-500"
+                      className="bg-[#4158FE] h-full transition-all duration-500 rounded-full"
                       style={{ width: `${sub.accuracy}%` }}
                     />
                   </div>
@@ -157,15 +159,15 @@ export const Results: React.FC<ResultsProps> = ({ attemptId, onNavigate }) => {
             </div>
           </div>
 
-          {/* Weak Topics Chip List */}
-          <div className="bg-sheet rounded-lg border border-pencil-line p-6 shadow-sm space-y-4">
-            <h2 className="text-base font-bold font-sans text-graphite flex items-center gap-2">
-              <AlertCircle size={18} className="text-red-ink" />
+          {/* Weak Topics List */}
+          <div className="bg-[var(--quiz-card-bg,#191C23)] rounded-2xl border border-[var(--quiz-card-border,#2D3139)] p-6 shadow-md space-y-4">
+            <h2 className="text-base font-bold font-sans text-white flex items-center gap-2">
+              <AlertCircle size={18} className="text-[var(--quiz-wrong-border,#B1251E)]" />
               <span>Topics Needing Revision</span>
             </h2>
 
             {results.weak_topics.length === 0 ? (
-              <p className="text-xs font-sans text-graphite-soft">
+              <p className="text-xs font-sans text-gray-400">
                 Great job! No weak topics detected in this attempt.
               </p>
             ) : (
@@ -173,10 +175,10 @@ export const Results: React.FC<ResultsProps> = ({ attemptId, onNavigate }) => {
                 {results.weak_topics.map((wt) => (
                   <div
                     key={wt.topic}
-                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-red-ink-soft border border-red-ink/30 text-xs font-sans text-graphite"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-[var(--quiz-wrong-bg,#311E22)] border border-[var(--quiz-wrong-border,#B1251E)]/40 text-xs font-sans text-gray-200"
                   >
-                    <span className="font-semibold text-red-ink">{wt.topic}</span>
-                    <span className="font-mono text-[10px] text-graphite-soft">
+                    <span className="font-semibold text-[var(--quiz-wrong-border,#B1251E)]">{wt.topic}</span>
+                    <span className="font-mono text-[10px] text-gray-400">
                       ({wt.wrong_count} incorrect)
                     </span>
                   </div>
@@ -196,64 +198,80 @@ export const Results: React.FC<ResultsProps> = ({ attemptId, onNavigate }) => {
             return (
               <div
                 key={q.question_id}
-                className="bg-sheet rounded-lg border border-pencil-line p-4 shadow-xs space-y-3 transition-all"
+                className="bg-[var(--quiz-card-bg,#191C23)] rounded-2xl border border-[var(--quiz-card-border,#2D3139)] p-4 sm:p-5 shadow-md space-y-3 transition-all"
               >
                 <div
                   onClick={() => toggleExpandQuestion(q.question_id)}
                   className="flex items-center justify-between gap-4 cursor-pointer"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <DigitBox prefix="Q" value={idx + 1} size="sm" />
                     <InkMark
                       type={q.is_correct ? 'tick' : 'cross'}
                       size={20}
-                      className={q.is_correct ? 'text-exam-green' : 'text-red-ink'}
+                      className={q.is_correct ? 'text-[var(--quiz-correct-label,#6BD586)]' : 'text-[var(--quiz-wrong-border,#B1251E)]'}
                     />
-                    <span className="font-sans font-medium text-sm text-graphite line-clamp-1">
-                      {q.question_text}
-                    </span>
+                    <div className="font-sans font-medium text-sm text-gray-200 truncate">
+                      <MathText text={q.question_text} />
+                    </div>
                   </div>
 
-                  <button type="button" className="text-graphite-soft">
+                  <button type="button" className="text-gray-400 shrink-0">
                     {isExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                   </button>
                 </div>
 
                 {isExpanded && (
-                  <div className="pt-3 border-t border-pencil-line space-y-3 text-sm font-sans">
-                    <div className="font-medium text-graphite leading-relaxed">
-                      {q.question_text}
+                  <div className="pt-3 border-t border-[#2D3139] space-y-4 text-sm font-sans">
+                    <div className="font-medium text-white leading-relaxed">
+                      <MathText text={q.question_text} />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 font-sans text-xs">
+                    {/* Hint if present */}
+                    {q.hint && (
+                      <div className="p-3 rounded-xl border border-[#4158FE]/20 bg-[#21242B] text-xs text-gray-200">
+                        <span className="block font-mono text-[10px] uppercase font-bold text-[#6B80FF] mb-0.5">
+                          Hint:
+                        </span>
+                        <MathText text={q.hint} />
+                      </div>
+                    )}
+
+                    {/* Options Stack with Per-Option Rationales */}
+                    <div className="flex flex-col gap-2.5">
                       {q.options.map((optText, optIdx) => {
                         const isUserPick = q.user_selected_index === optIdx;
                         const isCorrectOpt = q.correct_option_index === optIdx;
+                        const rationaleText = q.option_rationales?.[optIdx] || (isCorrectOpt ? q.explanation : undefined);
 
-                        let style = 'bg-sheet border-pencil-line text-graphite-soft';
+                        let style = 'bg-[#21242B] border-[#2D3139] text-gray-300';
                         if (isCorrectOpt) {
-                          style = 'bg-exam-green-soft border-exam-green text-graphite font-semibold';
+                          style = 'bg-[var(--quiz-correct-bg,#1E2E24)] border-[var(--quiz-correct-label,#6BD586)] text-white font-semibold';
                         } else if (isUserPick && !isCorrectOpt) {
-                          style = 'bg-red-ink-soft border-red-ink text-graphite font-semibold';
+                          style = 'bg-[var(--quiz-wrong-bg,#311E22)] border-[var(--quiz-wrong-border,#B1251E)] text-white font-semibold';
                         }
 
                         return (
-                          <div key={optIdx} className={`p-2.5 rounded border ${style}`}>
-                            <span className="font-mono font-bold mr-1">{letters[optIdx]}.</span>
-                            <span>{optText}</span>
+                          <div key={optIdx} className={`p-3 rounded-xl border ${style} space-y-1.5`}>
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className="font-mono font-bold">{letters[optIdx]}.</span>
+                              <div className="flex-1">
+                                <MathText text={optText} />
+                              </div>
+                            </div>
+
+                            {rationaleText && (
+                              <div className="pt-2 border-t border-white/5 text-xs text-gray-300 leading-relaxed pl-5">
+                                <span className="font-mono text-[10px] uppercase font-bold text-gray-400 block mb-0.5">
+                                  Rationale:
+                                </span>
+                                <MathText text={rationaleText} />
+                              </div>
+                            )}
                           </div>
                         );
                       })}
                     </div>
-
-                    {q.explanation && (
-                      <div className="p-3 rounded bg-sheet-2 border border-pencil-line text-xs font-sans text-graphite leading-relaxed">
-                        <span className="font-mono font-bold uppercase text-graphite-soft block mb-1">
-                          Explanation:
-                        </span>
-                        {q.explanation}
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -264,36 +282,36 @@ export const Results: React.FC<ResultsProps> = ({ attemptId, onNavigate }) => {
 
       {/* Tab 3: Compare with Team Leaderboard */}
       {activeTab === 'compare' && (
-        <div className="bg-sheet rounded-lg border border-pencil-line p-6 shadow-sm space-y-4">
-          <h2 className="text-base font-bold font-sans text-graphite flex items-center gap-2">
-            <Trophy size={18} className="text-ink-navy" />
+        <div className="bg-[var(--quiz-card-bg,#191C23)] rounded-2xl border border-[var(--quiz-card-border,#2D3139)] p-6 shadow-md space-y-4">
+          <h2 className="text-base font-bold font-sans text-white flex items-center gap-2">
+            <Trophy size={18} className="text-[#6B80FF]" />
             <span>Test Scoreboard</span>
           </h2>
 
-          <div className="divide-y divide-pencil-line">
+          <div className="divide-y divide-[#2D3139]">
             {results.team_comparison.map((m) => (
               <div
                 key={m.user_id}
-                className={`py-3.5 px-3 flex items-center justify-between gap-4 rounded-md transition-colors ${
-                  m.is_current_user ? 'bg-ink-navy/10 border border-ink-navy/20' : 'hover:bg-sheet-2'
+                className={`py-3.5 px-3 flex items-center justify-between gap-4 rounded-xl transition-colors ${
+                  m.is_current_user ? 'bg-[#4158FE]/10 border border-[#4158FE]/30' : 'hover:bg-[#21242B]'
                 }`}
               >
                 <div className="flex items-center gap-3">
                   <DigitBox value={`0${m.rank}`} size="sm" active={m.rank === 1} />
-                  <div className="w-8 h-8 rounded-full bg-ink-navy text-white font-mono font-bold text-xs flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-full bg-[#4158FE] text-white font-mono font-bold text-xs flex items-center justify-center">
                     {m.user_name.charAt(0)}
                   </div>
                   <div>
-                    <div className="font-sans font-bold text-sm text-graphite">
+                    <div className="font-sans font-bold text-sm text-white">
                       {m.user_name} {m.is_current_user && '(You)'}
                     </div>
-                    <div className="font-mono text-xs text-graphite-soft">
+                    <div className="font-mono text-xs text-gray-400">
                       {m.has_attempted ? `Score: ${m.score}/${m.total}` : 'Not attempted yet'}
                     </div>
                   </div>
                 </div>
 
-                <div className="font-mono font-bold text-lg text-ink-navy">
+                <div className="font-mono font-bold text-lg text-[#6B80FF]">
                   {m.has_attempted ? `${m.accuracy}%` : '—'}
                 </div>
               </div>

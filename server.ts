@@ -48,104 +48,110 @@ const SEED_USERS = [
 // Seed Sample JEE Mock Test Questions
 const SEED_JEE_QUESTIONS = [
   {
+    id: 'q_alg_1',
+    question_text: 'Solve for $x$ in the equation $2^{|x+1|} - 2^x = |2^x - 1| + 1$.',
+    options: [
+      '$x \\ge 0$',
+      '$x \\in [-1, 0]$',
+      '$x \\in [0, \\infty)$',
+      '$x = -1$'
+    ],
+    correct_option_index: 3,
+    hint: 'Consider critical points at $x = -1$ and $x = 0$ to break into distinct domain intervals.',
+    option_rationales: [
+      'In the case $x > 0$, the equation becomes $2^{x+1} - 2^x = 2^x - 1 + 1$, which simplifies to $2^x(2-1) = 2^x$, which is true for all $x \\ge 0$. However, this ignores negative critical intervals.',
+      'This range is often checked due to the critical points of the modulus, but the algebraic simplification in this interval fails to meet the identity.',
+      'While positive values satisfy some parts of the equation, this interval does not account for the critical points where the modulus behavior changes.',
+      'By analyzing cases $x < -1$, $-1 \\le x < 0$, and $x \\ge 0$, we find that only specific discrete values or intervals hold; testing $x = -1$ gives $2^0 - 2^{-1} = |2^{-1} - 1| + 1$, confirming the identity.'
+    ],
+    subject: 'Mathematics',
+    topic: 'Algebra & Modulus',
+    difficulty: 'medium'
+  },
+  {
+    id: 'q_alg_2',
+    question_text: 'The number of real roots of the equation $x^2 - 3|x| + 2 = 0$ is:',
+    options: ['2', '4', '3', '0'],
+    correct_option_index: 1,
+    hint: 'Substitute $t = |x|$ where $t \\ge 0$ to convert it into a standard quadratic equation.',
+    option_rationales: [
+      'This error occurs if one only solves for $x^2 - 3x + 2 = 0$ and ignores the negative roots provided by the modulus.',
+      'The equation can be viewed as $(|x|)^2 - 3|x| + 2 = 0$, which factors into $(|x| - 1)(|x| - 2) = 0$, giving $|x| = 1$ and $|x| = 2$, each contributing two real roots ($x = \\pm 1, \\pm 2$).',
+      'This result might arise from incorrectly assuming one root is zero or duplicate.',
+      'Incorrect because factorizing the quadratic yields positive roots for $|x|$, ensuring real solutions exist.'
+    ],
+    subject: 'Mathematics',
+    topic: 'Quadratic Equations',
+    difficulty: 'easy'
+  },
+  {
     id: 'q_chem_1',
-    question_text: 'For a first-order reaction, if the rate constant k is 6.93 × 10⁻³ s⁻¹, what is the half-life period (t₁/₂) of the reaction?',
+    question_text: 'For a first-order reaction, if the rate constant $k$ is $6.93 \\times 10^{-3} \\text{ s}^{-1}$, what is the half-life period ($t_{1/2}$) of the reaction?',
     options: ['100 seconds', '69.3 seconds', '10 seconds', '1000 seconds'],
     correct_option_index: 0,
-    explanation: 'For a first-order reaction, t₁/₂ = 0.693 / k = 0.693 / (6.93 × 10⁻³) = 100 seconds.',
+    hint: 'Recall the first-order half-life formula $t_{1/2} = \\frac{\\ln 2}{k} \\approx \\frac{0.693}{k}$.',
+    option_rationales: [
+      'For a first-order reaction, $t_{1/2} = \\frac{0.693}{k} = \\frac{0.693}{6.93 \\times 10^{-3}} = 100\\text{ seconds}$. This is the exact worked solution.',
+      '69.3 seconds results from an arithmetic magnitude error dividing 0.693 by 0.01 instead of $6.93 \\times 10^{-3}$.',
+      '10 seconds comes from omitting a factor of 10 in the exponent calculation.',
+      '1000 seconds is an overestimation by a factor of 10.'
+    ],
     subject: 'Chemistry',
     topic: 'Chemical Kinetics',
     difficulty: 'easy'
   },
   {
     id: 'q_phy_1',
-    question_text: 'A particle of mass m moves in a circular path of radius r with a uniform speed v. What is the work done by the centripetal force during one complete revolution?',
+    question_text: 'A particle of mass $m$ moves in a circular path of radius $r$ with a uniform speed $v$. What is the work done by the centripetal force during one complete revolution?',
     options: ['2πrmv²', 'Zero', 'mv²/r', 'πmv²'],
     correct_option_index: 1,
-    explanation: 'The centripetal force acts perpendicular to the instantaneous displacement at all points along the circular path, so W = F · d = F d cos(90°) = 0.',
+    hint: 'Think about the angle between the centripetal force vector and the displacement vector at any point.',
+    option_rationales: [
+      'Confuses work with circumference multiplied by kinetic energy.',
+      'The centripetal force acts radially inward while displacement is tangential ($F \\perp d$). Since $\\theta = 90^\\circ$, $W = Fd\\cos(90^\\circ) = 0$.',
+      'This is the expression for centripetal force magnitude $F_c$, not work done.',
+      'Incorrect dimensional expression for work.'
+    ],
     subject: 'Physics',
     topic: 'Work, Power & Energy',
     difficulty: 'easy'
   },
   {
     id: 'q_math_1',
-    question_text: 'What is the value of the limit: lim(x → 0) (sin 3x / tan 2x)?',
+    question_text: 'What is the value of the limit: $\\lim_{x \\to 0} \\frac{\\sin 3x}{\\tan 2x}$?',
     options: ['3/2', '2/3', '1', '6'],
     correct_option_index: 0,
-    explanation: 'lim(x→0) (sin 3x / 3x * 3x) / (tan 2x / 2x * 2x) = (1 * 3x) / (1 * 2x) = 3/2.',
+    hint: 'Use standard limits $\\lim_{\\theta \\to 0} \\frac{\\sin \\theta}{\\theta} = 1$ and $\\lim_{\\theta \\to 0} \\frac{\\tan \\theta}{\\theta} = 1$.',
+    option_rationales: [
+      'Rewrite as $\\frac{\\sin 3x}{3x} \\cdot \\frac{2x}{\\tan 2x} \\cdot \\frac{3}{2}$. As $x \\to 0$, $1 \\cdot 1 \\cdot \\frac{3}{2} = \\frac{3}{2}$.',
+      'Inverting the coefficients yields 2/3, a common reciprocal mistake.',
+      'Canceling trigonometric functions directly without scaling coefficients gives 1.',
+      'Multiplying the coefficients 3 × 2 instead of taking the ratio yields 6.'
+    ],
     subject: 'Mathematics',
     topic: 'Limits & Calculus',
     difficulty: 'easy'
   },
   {
-    id: 'q_chem_2',
-    question_text: 'Which of the following coordination compounds exhibits optical isomerism?',
-    options: ['[Co(NH₃)₆]³⁺', 'trans-[Co(en)₂Cl₂]⁺', 'cis-[Co(en)₂Cl₂]⁺', '[Ni(CN)₄]²⁻'],
-    correct_option_index: 2,
-    explanation: 'cis-[Co(en)₂Cl₂]⁺ lacks a plane or center of symmetry, making its mirror image non-superimposable (optically active). Trans isomer has a plane of symmetry.',
-    subject: 'Chemistry',
-    topic: 'Coordination Chemistry',
-    difficulty: 'medium'
-  },
-  {
-    id: 'q_phy_2',
-    question_text: 'In an AC circuit, the instantaneous current and voltage are given by I = 5 sin(100πt) A and V = 200 sin(100πt + π/3) V. Calculate the average power consumed in the circuit.',
-    options: ['500 W', '250 W', '1000 W', '125 W'],
-    correct_option_index: 1,
-    explanation: 'Power = V_rms * I_rms * cos(φ) = (200/√2) * (5/√2) * cos(60°) = 500 * (1/2) = 250 W.',
-    subject: 'Physics',
-    topic: 'Alternating Current',
-    difficulty: 'medium'
-  },
-  {
-    id: 'q_math_2',
-    question_text: 'If A and B are square matrices of the same order such that AB = A and BA = B, then A² + B² is equal to:',
-    options: ['A + B', 'AB', 'A - B', '2I'],
+    id: 'q_phy_long_1',
+    question_text: 'A multi-stage thermodynamic process operates between two thermal reservoirs. Consider the following detailed statements regarding entropy change in irreversible thermodynamic cycles and choose the correct conclusion:',
+    options: [
+      'The total entropy change of the universe in any real, natural, or irreversible thermodynamic process is strictly positive ($\\Delta S_{\\text{univ}} > 0$).',
+      'The total entropy of a closed system always remains zero regardless of whether the internal thermal processes are reversible or irreversible.',
+      'Entropy decreases in all spontaneous chemical processes occurring at room temperature without external work input.',
+      'The efficiency of an irreversible engine operating between two temperatures is strictly greater than a Carnot engine operating between the same temperatures.'
+    ],
     correct_option_index: 0,
-    explanation: 'A² = A(AB) = (AA)B = AB = A. Similarly B² = B. Therefore A² + B² = A + B.',
-    subject: 'Mathematics',
-    topic: 'Matrices & Determinants',
-    difficulty: 'medium'
-  },
-  {
-    id: 'q_chem_3',
-    question_text: 'What is the major organic product formed when phenol reacts with chloroform and aqueous NaOH (Reimer-Tiemann reaction)?',
-    options: ['Benzoic acid', 'Salicylaldehyde', 'Salicylic acid', 'Benzaldehyde'],
-    correct_option_index: 1,
-    explanation: 'Reimer-Tiemann reaction converts phenol to o-hydroxybenzaldehyde (salicylaldehyde) via dichlorocarbene intermediate.',
-    subject: 'Chemistry',
-    topic: 'Organic Chemistry',
-    difficulty: 'medium'
-  },
-  {
-    id: 'q_phy_3',
-    question_text: 'Two identical capacitors are connected in parallel and charged to a potential V. They are then disconnected and connected in series. What is the new potential difference across the combination?',
-    options: ['V / 2', 'V', '2V', '4V'],
-    correct_option_index: 2,
-    explanation: 'Each capacitor is charged to potential V. Connecting them in series adds their potential differences V + V = 2V.',
+    hint: 'Refer to Clausius inequality and the Second Law of Thermodynamics regarding universe entropy.',
+    option_rationales: [
+      'According to the Second Law of Thermodynamics, all real natural processes are irreversible, increasing the total entropy of the universe ($\\Delta S_{\\text{system}} + \\Delta S_{\\text{surroundings}} > 0$).',
+      'Entropy remains constant only for reversible processes in isolated systems, not general closed systems.',
+      'Spontaneous processes increase total entropy of the universe, not decrease it.',
+      'Carnot engine represents the maximum theoretical efficiency; no real engine can exceed it.'
+    ],
     subject: 'Physics',
-    topic: 'Electrostatics',
-    difficulty: 'easy'
-  },
-  {
-    id: 'q_math_3',
-    question_text: 'Find the number of words that can be formed from the letters of the word "TRIANGLE" such that the vowels always occupy odd places.',
-    options: ['1440', '2880', '5760', '720'],
-    correct_option_index: 1,
-    explanation: 'Vowels = I, A, E (3 vowels). Total positions = 8 (Odd positions: 1, 3, 5, 7 - 4 places). 3 vowels can be arranged in 4 odd places in ⁴P₃ = 24 ways. The remaining 5 consonants fit in 5 remaining places in 5! = 120 ways. Total = 24 * 120 = 2880.',
-    subject: 'Mathematics',
-    topic: 'Permutations & Combinations',
+    topic: 'Thermodynamics',
     difficulty: 'hard'
-  },
-  {
-    id: 'q_chem_4',
-    question_text: 'Which noble gas has the highest boiling point at atmospheric pressure?',
-    options: ['Helium (He)', 'Neon (Ne)', 'Argon (Ar)', 'Xenon (Xe)'],
-    correct_option_index: 3,
-    explanation: 'Boiling point increases down Group 18 with increasing atomic mass and polarizability of London dispersion forces. Xenon has the highest boiling point among these.',
-    subject: 'Chemistry',
-    topic: 'Inorganic Chemistry',
-    difficulty: 'easy'
   }
 ];
 
@@ -528,6 +534,8 @@ STRICT FORMATTING & LATEX INSTRUCTIONS:
               question_text: { type: Type.STRING },
               options: { type: Type.ARRAY, items: { type: Type.STRING } },
               correct_option_index: { type: Type.INTEGER },
+              option_rationales: { type: Type.ARRAY, items: { type: Type.STRING } },
+              hint: { type: Type.STRING },
               explanation: { type: Type.STRING },
               subject: { type: Type.STRING },
               topic: { type: Type.STRING },
@@ -548,19 +556,30 @@ STRICT FORMATTING & LATEX INSTRUCTIONS:
     }
 
     // Attach metadata
-    const parsedQuestions = questions.map((q: any, i: number) => ({
-      id: `ext_${Date.now()}_${i}`,
-      question_text: q.question_text || `Extracted JEE Question ${i + 1}`,
-      options: Array.isArray(q.options) && q.options.length === 4 ? q.options : ['Option A', 'Option B', 'Option C', 'Option D'],
-      correct_option_index: typeof q.correct_option_index === 'number' ? q.correct_option_index : 0,
-      explanation: q.explanation || 'Step-by-step derivation based on standard JEE curriculum.',
-      subject: ['Physics', 'Chemistry', 'Mathematics'].includes(q.subject) ? q.subject : 'Physics',
-      topic: q.topic || 'General Physics',
-      difficulty: ['easy', 'medium', 'hard'].includes(q.difficulty) ? q.difficulty : 'medium',
-      confidence: typeof q.confidence === 'number' ? q.confidence : 92,
-      extraction_source: imageParts.length > 1 ? `Gemini 2.5 Flash (${imageParts.length} files)` : 'Gemini 2.5 Flash Primary',
-      image_url: q.has_diagram && q.diagram_description ? `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="120" viewBox="0 0 300 120"><rect width="100%" height="100%" fill="%23F5F4EF" stroke="%23D8D6CC" stroke-width="2" rx="4"/><text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%231F2A44" font-weight="bold">Diagram / Figure Reference</text><text x="50%" y="70%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="10" fill="%236B6E76">${encodeURIComponent(q.diagram_description)}</text></svg>` : undefined
-    }));
+    const parsedQuestions = questions.map((q: any, i: number) => {
+      const opts = Array.isArray(q.options) && q.options.length === 4 ? q.options : ['Option A', 'Option B', 'Option C', 'Option D'];
+      const defaultRationales = opts.map((opt: string, idx: number) =>
+        idx === (q.correct_option_index ?? 0)
+          ? 'This is the correct worked derivation.'
+          : `Option ${['A','B','C','D'][idx]} is an incorrect distractor.`
+      );
+
+      return {
+        id: `ext_${Date.now()}_${i}`,
+        question_text: q.question_text || `Extracted JEE Question ${i + 1}`,
+        options: opts,
+        correct_option_index: typeof q.correct_option_index === 'number' ? q.correct_option_index : 0,
+        option_rationales: Array.isArray(q.option_rationales) && q.option_rationales.length === 4 ? q.option_rationales : defaultRationales,
+        hint: q.hint || 'Analyze the given values and apply standard core physics/chemistry/math principles.',
+        explanation: q.explanation || 'Step-by-step derivation based on standard JEE curriculum.',
+        subject: ['Physics', 'Chemistry', 'Mathematics'].includes(q.subject) ? q.subject : 'Physics',
+        topic: q.topic || 'General Physics',
+        difficulty: ['easy', 'medium', 'hard'].includes(q.difficulty) ? q.difficulty : 'medium',
+        confidence: typeof q.confidence === 'number' ? q.confidence : 92,
+        extraction_source: imageParts.length > 1 ? `Gemini 2.5 Flash (${imageParts.length} files)` : 'Gemini 2.5 Flash Primary',
+        image_url: q.has_diagram && q.diagram_description ? `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="120" viewBox="0 0 300 120"><rect width="100%" height="100%" fill="%23F5F4EF" stroke="%23D8D6CC" stroke-width="2" rx="4"/><text x="50%" y="45%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="12" fill="%231F2A44" font-weight="bold">Diagram / Figure Reference</text><text x="50%" y="70%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="10" fill="%236B6E76">${encodeURIComponent(q.diagram_description)}</text></svg>` : undefined
+      };
+    });
 
     res.json({ questions: parsedQuestions });
   } catch (err: any) {
@@ -615,9 +634,9 @@ app.post('/api/attempts/start', authMiddleware, (req: any, res) => {
   db.attempts.push(newAttempt);
   saveDB(db);
 
-  // SECURITY FIX: Strip answer key (correct_option_index and explanation) before sending to student
+  // SECURITY FIX: Strip answer key (correct_option_index, option_rationales, explanation) before sending to student
   const sanitizedQuestions = test.questions.map((q: any) => {
-    const { correct_option_index, explanation, ...rest } = q;
+    const { correct_option_index, explanation, option_rationales, ...rest } = q;
     return rest;
   });
 
@@ -641,9 +660,13 @@ app.post('/api/attempts/answer', authMiddleware, (req: any, res) => {
     for (const t of db.tests || []) {
       const q = t.questions?.find((quest: any) => quest.id === question_id);
       if (q) {
+        const defaultRationales = (q.options || []).map((_: string, idx: number) =>
+          idx === q.correct_option_index ? 'Correct worked solution.' : 'Incorrect option.'
+        );
         return res.json({
           is_correct: selected_index === q.correct_option_index,
           correct_option_index: q.correct_option_index,
+          option_rationales: q.option_rationales || defaultRationales,
           explanation: q.explanation
         });
       }
@@ -677,9 +700,14 @@ app.post('/api/attempts/answer', authMiddleware, (req: any, res) => {
 
   saveDB(db);
 
+  const defaultRationales = (question.options || []).map((_: string, idx: number) =>
+    idx === question.correct_option_index ? 'Correct worked solution.' : 'Incorrect option.'
+  );
+
   res.json({
     is_correct,
     correct_option_index: question.correct_option_index,
+    option_rationales: question.option_rationales || defaultRationales,
     explanation: question.explanation
   });
 });
@@ -739,6 +767,8 @@ app.post('/api/attempts/finish', authMiddleware, (req: any, res) => {
       user_selected_index: userSel,
       correct_option_index: q.correct_option_index,
       is_correct: isCorr,
+      option_rationales: q.option_rationales,
+      hint: q.hint,
       explanation: q.explanation,
       subject: q.subject,
       topic: q.topic
@@ -874,6 +904,8 @@ app.get('/api/attempts/:id/results', authMiddleware, (req: any, res) => {
       user_selected_index: userSel,
       correct_option_index: q.correct_option_index,
       is_correct: isCorr,
+      option_rationales: q.option_rationales,
+      hint: q.hint,
       explanation: q.explanation,
       subject: q.subject,
       topic: q.topic

@@ -72,7 +72,27 @@ body {
   opacity: 0.08;
 }
 
-/* Keyframe Animations for Ink Strokes & Bleeds */
+.quiz-dark {
+  --quiz-bg: #121418;
+  --quiz-card-bg: #191C23;
+  --quiz-card-border: #2D3139;
+  --quiz-accent: #4158FE;
+  --quiz-correct-bg: #1E2E24;
+  --quiz-correct-border: #6BD586;
+  --quiz-correct-label: #6BD586;
+  --quiz-wrong-bg: #311E22;
+  --quiz-wrong-border: #B1251E;
+  --quiz-text-muted: #9CA3AF;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
 @keyframes inkBleed {
   0% {
     transform: scale(0.6);
